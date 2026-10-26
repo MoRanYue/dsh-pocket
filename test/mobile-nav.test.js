@@ -136,6 +136,40 @@ test('抽屉层级压过 dsh-web-ui-all 的移动端遮罩 —— issue #67', ()
   assert.ok(Number(z[1]) < 9999, `抽屉 z-index ${z[1]} 不该盖住视口级 banner/toast（9999）`);
 });
 
+test('body 级 portal 浮层必须高于抽屉，否则抽屉里的「更多」菜单看不见 —— issue #88', () => {
+  const css = readFileSync(new URL('../client/mobile/mobile.css.ts', import.meta.url), 'utf8');
+  // DSH 的 Menu / Tooltip 把浮层 createPortal 到 document.body，和抽屉不在
+  // 同一个层叠上下文里，只能靠 z-index 比大小：
+  //   Menu.tsx:572    createPortal(list, document.body)    -> role="menu"
+  //   Tooltip.tsx:270 createPortal(content, document.body) -> role="tooltip" [data-portal]
+  // 两者的 z-index 都是 1100（Menu.module.css:45 `.portal`、
+  // Tooltip.module.css:28 `.bubble[data-portal]`），而抽屉是 1200。
+  // 于是：侧边栏「更多」菜单（SidebarRoot PanelMoreMenu，align=start/side=bottom，
+  // 整块落在 280px 抽屉内）完全被抽屉盖住，按钮点了像没反应；会话行 kebab 菜单
+  // （ui-workspace rows/Rows.tsx:760，align=end，从行右缘向右溢出）只剩露在抽屉
+  // 外的窄条 —— 用户报的「大部分被侧边栏遮挡」。
+  const drawerZ = Number(
+    css.slice(css.indexOf('> :first-child {')).match(/z-index:\s*(\d+)\s*!/)[1],
+  );
+  const portalRule = css.match(
+    /body\s*>\s*\[role="menu"\][\s\S]{0,400}?\{[^}]*z-index:\s*(\d+)\s*!/,
+  );
+  assert.ok(portalRule, '缺少把 body 级 [role="menu"] 抬到抽屉之上的规则');
+  const portalZ = Number(portalRule[1]);
+  assert.ok(portalZ > drawerZ, `浮层 z-index ${portalZ} 必须高于抽屉 ${drawerZ}`);
+  assert.ok(portalZ < 9999, `浮层 z-index ${portalZ} 不该盖住视口级 banner/toast（9999）`);
+  // Tooltip 的气泡同样是 body 级 portal，抽屉按钮上的长按提示也一起被压住
+  assert.ok(
+    /body\s*>\s*\[role="tooltip"\]/.test(css) && /body\s*>\s*\[data-portal\]/.test(css),
+    'Tooltip 的 portal 气泡（[role="tooltip"] / [data-portal]）要一起抬',
+  );
+  // 只抬 body 的直接子元素：被 portal 进抽屉内部的对话框要保持自己的层叠上下文
+  assert.ok(
+    !/\[data-mobile-nav="frame"\]\s+\[role="menu"\]/.test(css),
+    '不要在抽屉内部再抬一次 [role="menu"]（会顶掉抽屉内对话框的层级）',
+  );
+});
+
 test('移除 web-ui-all 在 frame 上的全屏 ::after 遮罩 —— issue #67', () => {
   const css = readFileSync(new URL('../client/mobile/mobile.css.ts', import.meta.url), 'utf8');
   assert.ok(
