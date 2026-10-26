@@ -867,6 +867,32 @@ var MOBILE_CSS = `
     border-right: none !important;
   }
 
+  /* Portaled popovers must paint ABOVE the drawer.
+     DSH's popover primitives render into <body> on one fixed layer:
+       Menu.tsx:572   createPortal(list, document.body)      -> role="menu", z 1100
+       Tooltip.tsx:270 createPortal(content, document.body)  -> role="tooltip" [data-portal], z 1100
+     (packages/client/ui-primitives/src/Menu.module.css:45 .portal, and
+     Tooltip.module.css:28 .bubble[data-portal], both z-index: 1100).
+     The drawer above is 1200, so every menu opened from a drawer control is
+     painted UNDER it:
+       - the panel list's \u300C\u66F4\u591A\u300D (SidebarRoot PanelMoreMenu, align=start /
+         side=bottom) opens downward inside the 280px drawer and is fully
+         covered \u2014 the button looks dead;
+       - a session row's kebab (ui-workspace rows/Rows.tsx:760, align=end) opens
+         at the row's right edge, so only the sliver spilling past the drawer
+         edge shows \u2014 the menu looks cut off.
+     Lift the body-level popover layer one step above the drawer. 1210 still
+     sits far below the viewport-level banners/toasts (z 9999) and above every
+     DSH portal layer (menu/tooltip/toast 1100). Scoped to body's own children
+     on purpose: surfaces portaled INTO the drawer (the settings dialog) must
+     keep their own stacking context. */
+  body > [role="menu"],
+  body > [role="listbox"],
+  body > [role="tooltip"],
+  body > [data-portal] {
+    z-index: 1210 !important;
+  }
+
   /* Expanded state (frame without data-sidebar-collapsed) slides the drawer in.
      The open state must be transform:none \u2014 NOT translateX(0): an identity
      transform still makes the drawer the containing block for fixed-position
