@@ -170,6 +170,44 @@ test('body 级 portal 浮层必须高于抽屉，否则抽屉里的「更多」�
   );
 });
 
+test('body 级模态层必须高于抽屉，否则展开的侧边栏会挡住「设置」窗口', () => {
+  const css = readFileSync(new URL('../client/mobile/mobile.css.ts', import.meta.url), 'utf8');
+  // 设置面板和 Modal 都是 body 级 portal，z-index 都是 1000：
+  //   SettingsRoot.tsx:70  createPortal(overlay, document.body)
+  //     -> SettingsRoot.module.css:63  .overlay { position: fixed; inset: 0; z-index: 1000 }
+  //   Modal.tsx:57         createPortal(root, document.body)
+  //     -> Modal.module.css:10  .root { z-index: 1000 }
+  // 抽屉是 1200，于是抽屉展开时打开「设置」，抽屉会盖住设置面板的标题、关闭
+  // 按钮和整列导航。模态层要压在抽屉之上，但仍低于它自己内部弹出的菜单。
+  const drawerZ = Number(
+    css.slice(css.indexOf('> :first-child {')).match(/z-index:\s*(\d+)\s*!/)[1],
+  );
+  const modalRule = css.match(
+    /body\s*>\s*\[role="presentation"\][\s\S]{0,400}?\{[^}]*z-index:\s*(\d+)\s*!/,
+  );
+  assert.ok(modalRule, '缺少把 body 级模态层（设置面板 / Modal）抬到抽屉之上的规则');
+  const modalZ = Number(modalRule[1]);
+  assert.ok(modalZ > drawerZ, `模态层 z-index ${modalZ} 必须高于抽屉 ${drawerZ}`);
+  assert.ok(modalZ < 9999, `模态层 z-index ${modalZ} 不该盖住视口级 banner/toast（9999）`);
+  // 设置面板里的下拉菜单要能盖住设置面板本身
+  const portalZ = Number(
+    css.match(/body\s*>\s*\[role="menu"\][\s\S]{0,400}?\{[^}]*z-index:\s*(\d+)\s*!/)[1],
+  );
+  assert.ok(portalZ > modalZ, `菜单层 ${portalZ} 必须高于模态层 ${modalZ}`);
+  // 单独 portal 出来的对话框根节点（PlatformOverlay.tsx:69 直接就是
+  // <div role="dialog" aria-modal="true">，z-index 1001）也要一起抬
+  assert.ok(
+    /body\s*>\s*\[role="dialog"\]\[aria-modal="true"\]/.test(css),
+    'body 级 [role="dialog"][aria-modal="true"]（账号 PlatformOverlay）要一起抬',
+  );
+  // toast 同样是 body 级 portal（Toast.tsx:75，role="alert"，z-index 1100），
+  // 抽屉展开时弹出的提示不该被抽屉盖住
+  assert.ok(
+    /body\s*>\s*\[role="alert"\]/.test(css),
+    'toast（[role="alert"]）也要抬到抽屉之上',
+  );
+});
+
 test('移除 web-ui-all 在 frame 上的全屏 ::after 遮罩 —— issue #67', () => {
   const css = readFileSync(new URL('../client/mobile/mobile.css.ts', import.meta.url), 'utf8');
   assert.ok(
