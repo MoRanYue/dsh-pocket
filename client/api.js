@@ -18,8 +18,8 @@ export const POCKET_ENDPOINTS = Object.freeze({
   mobileRightbarSetEnabled: 'mobile.rightbar.setEnabled',
   pinSetCustom: 'pin.setCustom',
   pocketReset: 'pocket.reset',
-  // 移动端「复制文件内容」（issue #17）：手机经此 RPC 让主机读取文件正文，
-  // 再写入剪贴板——因为手机无法直接打开电脑上的文件。
+  // 移动端「复制文件内容」（issue #17）：手机经此 RPC 让主机读取文件正文，再写入
+  // 剪贴板——侧边栏预览只能看，整篇复制还得走这条路。
   fileRead: 'pocket.fileRead',
 });
 
