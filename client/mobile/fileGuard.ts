@@ -1,16 +1,21 @@
-// 移动端文件守卫（issue #17）：dsh-web 在手机上点「文件链接」会触发桌面端
-// workspaces.openPath(open <path>)，既打不开（文件在电脑上），又会抛
-// "path open failed". 这里做两件事：
-//   1) 捕获阶段拦截这类激活（点击 / 键盘），改为弹一个提示；
-//   2) 在每个文件链接旁注入一个「复制」按钮，点它经主机 RPC 读文件正文再写剪贴板。
-// 另外隐藏「添加工作区」入口（手机上配工作区无意义）。
-// 移植自 dsh-web-mobile（MIT）。
+// 移动端文件辅助（issue #17）。早期 dsh-web 在手机上点「文件链接」会触发桌面端
+// workspaces.openPath(open <path>)，既打不开（文件在电脑上）又会抛
+// "path open failed"，所以这里曾在捕获阶段拦下这类激活，弹一句「无法直接打开」的提示。
+//
+// 现在 DSH 的文件链接改走 openFile：点击由 ui-primitives 的 MarkdownDelegate /
+// ToolCard 交给 chat inject，最终在**侧边栏**里打开预览
+// （ui-tool/tests/toolview-slot.client.spec.tsx:223「file-path clicks travel owner
+// openFile → chat inject → the right Sidebar」），不再调主机 openPath，也不会失败。
+// 于是那层拦截连同提示文案一起删掉了：它已经过时，而且因为它靠「文案像不像路径」
+// 猜目标，会把文案恰好是路径的正常按钮一起吞掉，点了没反应。
+//
+// 保留两件事：
+//   1) 在每个文件链接旁注入一个「复制」按钮，点它经主机 RPC 读文件正文再写剪贴板；
+//   2) 隐藏「添加工作区」入口（手机上配工作区无意义）。
 //
 // 识别方式：不依赖 dsh-web 的 hash 类名（每次构建都变），只认「文本像文件路径的
 // <button>/<a>」——文件链接按钮的文案就是路径（如 lib/proxy.mjs / /Users/.../x.ts）。
 
-/** 手机上点击文件时弹出的提示。 */
-const GUARD_MSG = '手机上无法直接打开电脑上的文件'
 /** 「添加工作区」入口的文案（随语言变化），两种都覆盖。 */
 const WS_LABELS = ['添加工作区', '添加工作区…', 'Add workspace', 'Add workspace…']
 /** 复制按钮文案。 */
@@ -100,20 +105,6 @@ export function startFileGuard(
     }, 2600)
   }
 
-  // 捕获阶段拦截文件链接的激活。按钮的键盘激活（Enter/Space）会派发 click，
-  // 因此只拦 click 即可同时覆盖鼠标与键盘，避免重复处理。
-  const onClick = (event: MouseEvent): void => {
-    const target = event.target as HTMLElement | null
-    if (target === null) return
-    const el = target.closest('button, a') as HTMLElement | null
-    if (el === null) return
-    if (!looksLikeFilePath(el.textContent)) return
-    event.preventDefault()
-    event.stopImmediatePropagation()
-    showToast(GUARD_MSG)
-  }
-  document.addEventListener('click', onClick, true)
-
   // 在文件链接旁注入「复制」按钮：点它经主机 RPC 读文件正文再写剪贴板。
   // 用 data-mobile-nav-copy 标记已处理的链接，避免重复注入；React 重渲染会
   // 产生新元素（无标记），MutationObserver 重新补上按钮。
@@ -191,7 +182,6 @@ export function startFileGuard(
   const disconnectWs = hideWsEntries()
 
   return () => {
-    document.removeEventListener('click', onClick, true)
     copyObserver.disconnect()
     disconnectWs()
     if (toastTimer !== null) window.clearTimeout(toastTimer)
