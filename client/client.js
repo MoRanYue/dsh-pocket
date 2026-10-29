@@ -68,8 +68,8 @@ var POCKET_ENDPOINTS = Object.freeze({
   mobileRightbarSetEnabled: "mobile.rightbar.setEnabled",
   pinSetCustom: "pin.setCustom",
   pocketReset: "pocket.reset",
-  // 移动端「复制文件内容」（issue #17）：手机经此 RPC 让主机读取文件正文，
-  // 再写入剪贴板——因为手机无法直接打开电脑上的文件。
+  // 移动端「复制文件内容」（issue #17）：手机经此 RPC 让主机读取文件正文，再写入
+  // 剪贴板——侧边栏预览只能看，整篇复制还得走这条路。
   fileRead: "pocket.fileRead"
 });
 function compareVersions(a, b) {
@@ -479,7 +479,6 @@ function MobileDrawerFooter({ useSessions, downloadSessionLog, toggleSidebar, t 
 }
 
 // client/mobile/fileGuard.ts
-var GUARD_MSG = "\u624B\u673A\u4E0A\u65E0\u6CD5\u76F4\u63A5\u6253\u5F00\u7535\u8111\u4E0A\u7684\u6587\u4EF6";
 var WS_LABELS = ["\u6DFB\u52A0\u5DE5\u4F5C\u533A", "\u6DFB\u52A0\u5DE5\u4F5C\u533A\u2026", "Add workspace", "Add workspace\u2026"];
 var COPY_LABEL = "\u590D\u5236";
 function looksLikeFilePath(text) {
@@ -552,17 +551,6 @@ function startFileGuard(readFile) {
       if (toastEl !== null) toastEl.style.opacity = "0";
     }, 2600);
   };
-  const onClick = (event) => {
-    const target = event.target;
-    if (target === null) return;
-    const el = target.closest("button, a");
-    if (el === null) return;
-    if (!looksLikeFilePath(el.textContent)) return;
-    event.preventDefault();
-    event.stopImmediatePropagation();
-    showToast(GUARD_MSG);
-  };
-  document.addEventListener("click", onClick, true);
   const injectCopyButtons = () => {
     const links = document.querySelectorAll("button, a");
     links.forEach((el) => {
@@ -633,7 +621,6 @@ function startFileGuard(readFile) {
   };
   const disconnectWs = hideWsEntries();
   return () => {
-    document.removeEventListener("click", onClick, true);
     copyObserver.disconnect();
     disconnectWs();
     if (toastTimer !== null) window.clearTimeout(toastTimer);
@@ -1919,7 +1906,7 @@ function mobileApply(ctx) {
       { path: filePath, cwd: getWorkspaceCwd() }
     );
     return startFileGuard(readFile);
-  }, "dsh-mobile-nav: file open guard + copy button + hide add-workspace (issue #17)");
+  }, "dsh-mobile-nav: file copy button + hide add-workspace (issue #17)");
   ctx.effect(() => {
     if (!narrow.matches) return () => {
     };
