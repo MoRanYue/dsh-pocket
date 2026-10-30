@@ -84,8 +84,8 @@ test('浮层内的点击被识别为 overlay（不该关抽屉）—— issue #7
 
 test('选择器常量与 MobileNavOverlay 的用法保持一致', () => {
   const src = readFileSync(new URL('../client/mobile/MobileNavOverlay.tsx', import.meta.url), 'utf8');
-  assert.equal(DRAWER_SELECTOR, '[data-mobile-nav="frame"] > :first-child');
-  assert.equal(TOGGLE_SELECTOR, '[data-mobile-nav="toggle"]');
+  assert.equal(DRAWER_SELECTOR, '[data-mobile-nav="frame"] > [class*="_sidebarCol"]');
+  assert.equal(TOGGLE_SELECTOR, '[data-mobile-nav="toggle"], [data-sidebar-opener]');
   assert.ok(
     src.includes("document.querySelector<HTMLElement>(DRAWER_SELECTOR)"),
     '抽屉查询应复用 DRAWER_SELECTOR，避免与 CSS 里的选择器漂移',
@@ -161,6 +161,32 @@ test('DSH 0.2.2 自带抽屉：按类名定位，并让位给官方遮罩', () =
     /\[data-mobile-nav="frame"\]\s*>\s*\[data-sidebar-mask\]\s*\{[^}]*display:\s*none\s*!/.test(css),
     '必须屏蔽官方抽屉遮罩，避免一次点击 toggle 两次',
   );
+});
+
+test('DSH 0.2.2 自带开合按钮时，插件自绘的两个入口让位', () => {
+  const css = readFileSync(new URL('../client/mobile/mobile.css.ts', import.meta.url), 'utf8');
+  // 0.2.2 在 frame 的 leading 座挂了官方开合按钮（button[data-sidebar-opener]，
+  // ui-sidebar HeaderLeadingControls.tsx:36，drawer 模式下每个 phase 都在），
+  // 位置和插件自绘的 toggle 几乎重合。三个入口做同一件事，只留官方那个。
+  assert.ok(
+    /\[data-mobile-nav="frame"\]:has\(\[data-sidebar-opener\]\)\s*\[data-mobile-nav="toggle"\]/.test(css),
+    '官方开合按钮存在时，插件自绘的 toggle 要隐藏',
+  );
+  assert.ok(
+    /\[data-mobile-nav="frame"\]:has\(\[data-sidebar-opener\]\)\s*\[data-mobile-nav="fab"\]/.test(css),
+    '官方开合按钮存在时，插件悬浮球也要隐藏',
+  );
+  // 反过来：老宿主没有官方按钮，两个兜底入口必须留着（否则手机上打不开抽屉）。
+  // 用行首锚定，只看这两条自己的规则块 —— 否则 :has() 那条的后半个选择器
+  // 也会以 [data-mobile-nav="fab"] 结尾，被误判成"无条件隐藏"。
+  assert.ok(
+    !/(?:^|\n)[ \t]*\[data-mobile-nav="toggle"\]\s*\{[^}]*display:\s*none/.test(css)
+      && !/(?:^|\n)[ \t]*\[data-mobile-nav="fab"\]\s*\{[^}]*display:\s*none/.test(css),
+    '不能让兜底入口无条件隐藏 —— 老版本 DSH 没有官方开合按钮',
+  );
+  // 官方按钮自己调 toggleSidebar()，必须和自绘 toggle 一样豁免「点抽屉外就关」，
+  // 否则一次点击被两边各 toggle 一次，净效果是抽屉不动。
+  assert.ok(TOGGLE_SELECTOR.includes('[data-sidebar-opener]'));
 });
 
 test('移除 web-ui-all 在 frame 上的全屏 ::after 遮罩 —— issue #67', () => {
