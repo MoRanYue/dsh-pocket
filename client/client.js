@@ -217,8 +217,8 @@ var import_react = require("react");
 var primitives2 = __toESM(require("@deepseek-ai/dsh-client-ui-primitives"), 1);
 
 // client/mobile/nav-targets.mjs
-var DRAWER_SELECTOR = '[data-mobile-nav="frame"] > :first-child';
-var TOGGLE_SELECTOR = '[data-mobile-nav="toggle"]';
+var DRAWER_SELECTOR = '[data-mobile-nav="frame"] > [class*="_sidebarCol"]';
+var TOGGLE_SELECTOR = '[data-mobile-nav="toggle"], [data-sidebar-opener]';
 var NAV_TARGETS = [
   "button[data-dsh-taskboard-entry]",
   "button[data-dsh-ssh-entry]",
@@ -1083,6 +1083,19 @@ var MOBILE_CSS = `
     left: 8px !important;
     top: 12px !important;
     z-index: 2 !important;
+  }
+  /* DSH 0.2.2 ships its own narrow-screen drawer opener in the frame's leading
+     seat (button[data-sidebar-opener], ui-sidebar HeaderLeadingControls.tsx:36)
+     and mounts it for every phase whenever the frame is in drawer mode. It sits
+     in the very same top-left corner and calls the very same toggleSidebar(),
+     so keeping ours would stack two identical buttons in one spot plus a third
+     floating one under them. The host control wins; ours step aside.
+     Gated on :has() so a host WITHOUT an opener (pre-0.2.2) still gets both
+     fallbacks \u2014 the floating button is also the only opener on the hero page
+     there, since no session header exists to host the header toggle. */
+  [data-mobile-nav="frame"]:has([data-sidebar-opener]) [data-mobile-nav="toggle"],
+  [data-mobile-nav="frame"]:has([data-sidebar-opener]) [data-mobile-nav="fab"] {
+    display: none !important;
   }
   /* The Files action sits at the FAR RIGHT of the header so it reads as a
      distinct control from the directory toggle on the left (which opens
