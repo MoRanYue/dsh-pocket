@@ -126,7 +126,7 @@ test('抽屉层级压过 dsh-web-ui-all 的移动端遮罩 —— issue #67', ()
   // web-ui-all 0.3.6 的移动端响应式：sidebar pane 1100 / details pane 1000 /
   // frame ::after 全屏遮罩 1050。抽屉必须高于 1100，否则那层遮罩会盖在抽屉
   // 上吃掉每一次点击 —— 抽屉能开，但里面什么都点不动，页面也滚不了。
-  const drawerBlock = css.slice(css.indexOf('> :first-child {'));
+  const drawerBlock = css.slice(css.indexOf('> [class*="_sidebarCol"] {'));
   const z = drawerBlock.match(/z-index:\s*(\d+)\s*!/);
   assert.ok(z, '抽屉必须显式声明 z-index !important');
   assert.ok(
@@ -134,6 +134,33 @@ test('抽屉层级压过 dsh-web-ui-all 的移动端遮罩 —— issue #67', ()
     `抽屉 z-index ${z[1]} 压不过 web-ui-all 的 1100 sidebar pane / 1050 遮罩`,
   );
   assert.ok(Number(z[1]) < 9999, `抽屉 z-index ${z[1]} 不该盖住视口级 banner/toast（9999）`);
+});
+
+test('DSH 0.2.2 自带抽屉：按类名定位，并让位给官方遮罩', () => {
+  const css = readFileSync(new URL('../client/mobile/mobile.css.ts', import.meta.url), 'utf8');
+  // 0.2.2 的 AppFrame 在窄屏开启自带抽屉（.frame[data-sidebar-drawer]），并在
+  // frame 里插入 div[data-sidebar-mask] 作为第一个子元素。于是位置选择器整体
+  // 错位：> :first-child 命中遮罩、> :nth-child(2) 命中侧边栏列，主内容列留在
+  // 0px 的第 2 轨 —— 手机上整个会话界面消失。必须改用官方类名后缀定位。
+  assert.ok(
+    /\[data-mobile-nav="frame"\]\s*>\s*\[class\*="_centerCol"\]\s*\{[^}]*grid-column:\s*1\s*!/.test(css),
+    '主内容列必须按类名（_centerCol）拉回第 1 轨，不能按子元素序号',
+  );
+  assert.ok(
+    /\[data-mobile-nav="frame"\]\s*>\s*\[class\*="_sidebarCol"\]\s*\{[^}]*position:\s*absolute\s*!/.test(css),
+    '抽屉必须按类名（_sidebarCol）定位，不能按子元素序号',
+  );
+  assert.ok(
+    !/\[data-mobile-nav="frame"\][^{]*>\s*:first-child\s*[,{]/.test(css)
+      && !/\[data-mobile-nav="frame"\][^{]*>\s*:nth-child\(\d+\)\s*[,{]/.test(css),
+    'frame 上不许再用 > :first-child / > :nth-child(N)（官方插入新节点就会错位）',
+  );
+  // 官方遮罩在点击时调 toggleSidebar()，而我们在 JS 里也会关抽屉：一次点击
+  // 触发两次 toggle，抽屉关了又立刻弹回来，看起来「关不掉」。
+  assert.ok(
+    /\[data-mobile-nav="frame"\]\s*>\s*\[data-sidebar-mask\]\s*\{[^}]*display:\s*none\s*!/.test(css),
+    '必须屏蔽官方抽屉遮罩，避免一次点击 toggle 两次',
+  );
 });
 
 test('移除 web-ui-all 在 frame 上的全屏 ::after 遮罩 —— issue #67', () => {
