@@ -1209,6 +1209,16 @@ test('upstreamPathWithLaunchToken（issue #77）：首屏根路径补 token，�
     `/?dsh-pocket-auth=1&token=${TOK}`, '带强制标记时无视旧 cookie');
 });
 
+test('withLaunchToken：无视 cookie 强制补 token（陈旧会话 cookie 自愈用）', async () => {
+  const { withLaunchToken } = await import('../lib/proxy.mjs');
+  const TOK = 'abcDEF123-_launch-token';
+  assert.equal(withLaunchToken('/', TOK), `/?token=${TOK}`, '根路径补 token');
+  assert.equal(withLaunchToken('/?x=1', TOK), `/?x=1&token=${TOK}`, '保留原有 query');
+  assert.equal(withLaunchToken('/?token=old', TOK), `/?token=${TOK}`, '替换而不是叠加 token');
+  assert.equal(withLaunchToken('/api/events.mux', TOK), '/api/events.mux', '非根路径不补');
+  assert.equal(withLaunchToken('/', ''), '/', '无 token 时原样');
+});
+
 // ---------- 清理历史遗留的 dsh-desktop-* 参数（issue #75） ----------
 
 test('stripDesktopMarkers（issue #75）：URL 上的 dsh-desktop-* 参数全部清掉，其余原样', async () => {
@@ -1324,6 +1334,132 @@ test('端到端（issue #77 + #91）：代理自动补 token 完成会话握手�
     assert.equal(second.status, 200, '带 cookie 直接返回首页');
     assert.match(await second.text(), /index/, '首页内容正确');
     assert.ok(!seen[seen.length - 1].includes('token='), '带 cookie 的请求不再补 token（防循环）');
+  } finally {
+    await proxy.close();
+    await new Promise((r) => upstream.close(r));
+  }
+});
+
+test('陈旧的会话 cookie：代理带 token 重新握手，不再把上游 401 原样甩给用户', async () => {
+  const http = await import('node:http');
+  const TOK = 'launch-token-abc123';
+  const GOOD_COOKIE = 'dsh-auth-dev=v2.signed-by-this-process';
+  const seen = [];
+  // 严格模拟 dsh web：只认**本进程**签出的那个 cookie。签名密钥换了、authority 变了、
+  // 或凭据被重置之后，浏览器里那个旧 cookie 一律 401（旧测试的上游只看 cookie 前缀，
+  // 所以一直没暴露这条死路）。
+  const upstream = http.createServer((req, res) => {
+    seen.push(req.url);
+    const u = new URL(req.url ?? '/', 'http://x');
+    const cookie = String(req.headers.cookie ?? '');
+    if (u.pathname === '/' && u.searchParams.get('token') === TOK) {
+      res.writeHead(303, { location: './', 'set-cookie': `${GOOD_COOKIE}; Path=/; HttpOnly; SameSite=Strict` });
+      res.end();
+      return;
+    }
+    if (u.pathname === '/' && cookie.includes(GOOD_COOKIE)) {
+      res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+      res.end('<html><body>index</body></html>');
+      return;
+    }
+    res.writeHead(401, { 'content-type': 'text/plain; charset=utf-8' });
+    res.end('dsh web authentication required; reopen the URL printed by dsh web.\n');
+  });
+  await new Promise((r) => upstream.listen(0, '127.0.0.1', r));
+  const proxy = await createPocketProxy({
+    port: 0, host: '127.0.0.1', upstream: { host: '127.0.0.1', port: upstream.address().port },
+    injectHtml: '', launchToken: () => TOK,
+  });
+  const base = `http://127.0.0.1:${proxy.port}`;
+  const nav = { host: '192.168.1.50:3081', cookie: 'dsh-auth-dev=v2.signed-by-previous-process' };
+  try {
+    // 浏览器里躺着一个早已失效的 cookie：上游 401 → 代理带 token 重发 → 过渡页 + 新 cookie
+    const stale = await fetch(`${base}/`, { redirect: 'manual', headers: nav });
+    assert.equal(stale.status, 200, '不再透传上游 401，而是重新握手');
+    assert.equal(stale.headers.get('x-dsh-pocket-handshake'), 'transition', '走 303→过渡页那条路');
+    assert.ok((stale.headers.get('set-cookie') ?? '').includes('dsh-auth-'), '下发新的会话 cookie');
+    assert.match(await stale.text(), /http-equiv="refresh"/, '过渡页随后跳回根路径');
+    assert.equal(seen.length, 2, '一次原请求 + 一次带 token 的重发，没有更多');
+    assert.ok(!seen[0].includes('token='), '第一次仍按 cookie 判定：不补 token');
+    assert.ok(seen[1].includes(`token=${TOK}`), '重发确实带上了启动 token');
+
+    // 换到新 cookie 之后：直接 200 首页，不再触发重发
+    const before = seen.length;
+    const ok = await fetch(`${base}/`, { redirect: 'manual', headers: { ...nav, cookie: GOOD_COOKIE } });
+    assert.equal(ok.status, 200, '有效 cookie 直接返回首页');
+    assert.match(await ok.text(), /index/, '首页内容正确');
+    assert.equal(seen.length, before + 1, '正常访问只打一次上游');
+    assert.ok(!seen[seen.length - 1].includes('token='), '有效 cookie 时不再补 token');
+  } finally {
+    await proxy.close();
+    await new Promise((r) => upstream.close(r));
+  }
+});
+
+test('陈旧会话 cookie：重发只做一次——token 也不被接受时照原样 401，不进入循环', async () => {
+  const http = await import('node:http');
+  const TOK = 'launch-token-abc123';
+  let hits = 0;
+  // 上游对任何请求都 401（最坏情况：token 也对不上，例如 dsh web 刚重启换了 token）
+  const upstream = http.createServer((req, res) => {
+    hits += 1;
+    res.writeHead(401, { 'content-type': 'text/plain; charset=utf-8' });
+    res.end('dsh web authentication required; reopen the URL printed by dsh web.\n');
+  });
+  await new Promise((r) => upstream.listen(0, '127.0.0.1', r));
+  const proxy = await createPocketProxy({
+    port: 0, host: '127.0.0.1', upstream: { host: '127.0.0.1', port: upstream.address().port },
+    injectHtml: '', launchToken: () => TOK,
+  });
+  const base = `http://127.0.0.1:${proxy.port}`;
+  try {
+    const r = await fetch(`${base}/`, {
+      redirect: 'manual', headers: { host: '192.168.1.50:3081', cookie: 'dsh-auth-dev=stale' },
+    });
+    assert.equal(r.status, 401, '重发仍失败时保留上游状态码');
+    assert.match(await r.text(), /dsh web authentication required/, '响应体原样透传');
+    assert.equal(hits, 2, '只重发一次（一次原请求 + 一次重发），不会反复尝试');
+  } finally {
+    await proxy.close();
+    await new Promise((r) => upstream.close(r));
+  }
+});
+
+test('陈旧会话 cookie 也不会无限刷新：浏览器不收新 cookie 时，达到握手上限就给提示页', async () => {
+  const http = await import('node:http');
+  const TOK = 'launch-token-abc123';
+  let hits = 0;
+  // Safari 那条路：cookie 下发了但浏览器不回传，请求里永远是那个旧 cookie
+  const upstream = http.createServer((req, res) => {
+    hits += 1;
+    const u = new URL(req.url ?? '/', 'http://x');
+    if (u.searchParams.get('token') === TOK) {
+      res.writeHead(303, { location: './', 'set-cookie': 'dsh-auth-abc=1; Path=/; HttpOnly; SameSite=Strict' });
+      res.end();
+      return;
+    }
+    res.writeHead(401, { 'content-type': 'text/plain; charset=utf-8' });
+    res.end('dsh web authentication required; reopen the URL printed by dsh web.\n');
+  });
+  await new Promise((r) => upstream.listen(0, '127.0.0.1', r));
+  const proxy = await createPocketProxy({
+    port: 0, host: '127.0.0.1', upstream: { host: '127.0.0.1', port: upstream.address().port },
+    injectHtml: '', launchToken: () => TOK, handshakeLimit: 3,
+  });
+  const base = `http://127.0.0.1:${proxy.port}`;
+  const nav = { host: '192.168.1.50:3081', cookie: 'dsh-auth-dev=stale' };
+  try {
+    // 自愈重试不能顺带把握手计数清零，否则每次请求都从 1 重新计数 → 过渡页自动刷新永不停
+    for (let i = 0; i < 3; i += 1) {
+      const r = await fetch(`${base}/`, { redirect: 'manual', headers: nav });
+      assert.equal(r.status, 200, `第 ${i + 1} 次仍是过渡页`);
+      assert.equal(r.headers.get('x-dsh-pocket-handshake'), 'transition');
+    }
+    const blocked = await fetch(`${base}/`, { redirect: 'manual', headers: nav });
+    assert.equal(blocked.status, 503, '达到上限后停下，不再自动刷新');
+    assert.equal(blocked.headers.get('x-dsh-pocket-handshake'), 'blocked');
+    assert.match(await blocked.text(), /dsh-pocket-retry/, '提示页给出可操作的出口');
+    assert.equal(hits, 6, '三次握手各两次上游请求，之后不再打上游');
   } finally {
     await proxy.close();
     await new Promise((r) => upstream.close(r));
