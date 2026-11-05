@@ -23,6 +23,14 @@ export interface MobileNavOverlayProps extends PropsRuntime<'shell.overlay'>, Pr
 /** Same breakpoint as the shell's SIDEBAR_AUTO_COLLAPSE (viewport < 1024). */
 const MOBILE_QUERY = '(max-width: 1023px)'
 
+/**
+ * Attribute the shell puts on the AppFrame while it runs its own narrow-screen
+ * drawer (DSH >= 0.2.2, viewport < SIDEBAR_DRAWER_BREAKPOINT = 768). In that
+ * mode the official mask, outside-tap close, Escape and focus management are
+ * all official, so this component steps aside: no backdrop, no drawer JS.
+ */
+const OFFICIAL_DRAWER_ATTR = 'data-sidebar-drawer'
+
 /** Live matchMedia hook for the narrow breakpoint. */
 function useMobile(): boolean {
   const [mobile, setMobile] = useState(() => window.matchMedia(MOBILE_QUERY).matches)
@@ -50,21 +58,32 @@ export function MobileNavOverlay({ toggleSidebar, t }: MobileNavOverlayProps) {
   const mobile = useMobile()
   const [open, setOpen] = useState(false)
   const [fabVisible, setFabVisible] = useState(false)
+  // The shell runs its own drawer: hand the drawer over to it (see attr doc).
+  const [officialDrawer, setOfficialDrawer] = useState(false)
 
   // Frame ownership + open-state mirror. On wide screens this effect is inert:
   // the marker is never set, so the layout is untouched.
   useLayoutEffect(() => {
     if (!mobile) {
       setOpen(false)
+      setOfficialDrawer(false)
       return
     }
     const frame = findFrame()
     if (frame === null) return
     frame.setAttribute('data-mobile-nav', 'frame')
-    const sync = () => setOpen(!frame.hasAttribute('data-sidebar-collapsed'))
+    const sync = () => {
+      setOpen(!frame.hasAttribute('data-sidebar-collapsed'))
+      // DSH ≥ 0.2.2 在窄屏把抽屉交给宿主：遮罩、外点关闭、Esc、焦点都由官方
+      // 的 modal layer 负责，插件再插一手会各 toggle 一次（净效果=不动）。
+      setOfficialDrawer(frame.hasAttribute(OFFICIAL_DRAWER_ATTR))
+    }
     sync()
     const observer = new MutationObserver(sync)
-    observer.observe(frame, { attributes: true, attributeFilter: ['data-sidebar-collapsed'] })
+    observer.observe(frame, {
+      attributes: true,
+      attributeFilter: ['data-sidebar-collapsed', OFFICIAL_DRAWER_ATTR],
+    })
     return () => {
       observer.disconnect()
       frame.removeAttribute('data-mobile-nav')
@@ -95,7 +114,7 @@ export function MobileNavOverlay({ toggleSidebar, t }: MobileNavOverlayProps) {
   // Escape closes the drawer — but yields to an open modal dialog (e.g. the
   // settings panel), which owns its own Escape handling.
   useEffect(() => {
-    if (!mobile || !open) return
+    if (!mobile || officialDrawer || !open) return
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && document.querySelector('[aria-modal="true"]') === null) toggleSidebar()
     }
@@ -103,7 +122,7 @@ export function MobileNavOverlay({ toggleSidebar, t }: MobileNavOverlayProps) {
     // handler, so the modal is still present when we yield to it.
     document.addEventListener('keydown', onKeyDown, true)
     return () => document.removeEventListener('keydown', onKeyDown, true)
-  }, [mobile, open, toggleSidebar])
+  }, [mobile, open, officialDrawer, toggleSidebar])
 
   // Navigation inside the drawer closes it: tapping a session row or a
   // plugin takeover entry (task board / ssh) must hand the screen to the
@@ -119,7 +138,7 @@ export function MobileNavOverlay({ toggleSidebar, t }: MobileNavOverlayProps) {
   //   not navigation — see NAV_TARGETS in nav-targets.mjs.
   // - Anything while a modal dialog is open: the dialog owns the screen.
   useEffect(() => {
-    if (!mobile || !open) return
+    if (!mobile || officialDrawer || !open) return
     let lastTouchNavAt = 0
     let lastTouchX = 0
     let lastTouchY = 0
@@ -240,7 +259,7 @@ export function MobileNavOverlay({ toggleSidebar, t }: MobileNavOverlayProps) {
       document.removeEventListener('click', onDrawerClick, true)
       document.removeEventListener('pointerup', onDrawerPointerUp, true)
     }
-  }, [mobile, open, toggleSidebar])
+  }, [mobile, open, officialDrawer, toggleSidebar])
 
   // Tap-outside closes the drawer (issue #38). The backdrop is now
   // pointer-events: none (pure dimming layer that never steals clicks), so
@@ -249,8 +268,12 @@ export function MobileNavOverlay({ toggleSidebar, t }: MobileNavOverlayProps) {
   // interaction while letting drawer contents receive clicks normally.
   // Capture phase: the close happens before the content processes the tap
   // (same first-tap-closes behaviour as before).
+  //
+  // Skipped entirely in official drawer mode: the host mask is a live layer
+  // that calls toggleSidebar() itself, so our handler would toggle a second
+  // time on the same tap and the drawer would snap back open.
   useEffect(() => {
-    if (!mobile || !open) return
+    if (!mobile || officialDrawer || !open) return
     const onOutsideClick = (event: MouseEvent) => {
       if (document.querySelector('[aria-modal="true"]') !== null) return
       const target = event.target as HTMLElement | null
@@ -271,12 +294,12 @@ export function MobileNavOverlay({ toggleSidebar, t }: MobileNavOverlayProps) {
     }
     document.addEventListener('click', onOutsideClick, true)
     return () => document.removeEventListener('click', onOutsideClick, true)
-  }, [mobile, open, toggleSidebar])
+  }, [mobile, open, officialDrawer, toggleSidebar])
 
   if (!mobile) return null
   return (
     <>
-      {open && (
+      {open && !officialDrawer && (
         <div data-mobile-nav="backdrop" />
       )}
       {fabVisible && !open && (

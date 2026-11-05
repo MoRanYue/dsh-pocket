@@ -249,6 +249,7 @@ function isOverlayTap(target) {
 // client/mobile/MobileNavOverlay.tsx
 var icons2 = resolveMobileIcons(primitives2);
 var MOBILE_QUERY = "(max-width: 1023px)";
+var OFFICIAL_DRAWER_ATTR = "data-sidebar-drawer";
 function useMobile() {
   const [mobile, setMobile] = (0, import_react.useState)(() => window.matchMedia(MOBILE_QUERY).matches);
   (0, import_react.useEffect)(() => {
@@ -266,18 +267,26 @@ function MobileNavOverlay({ toggleSidebar, t }) {
   const mobile = useMobile();
   const [open, setOpen] = (0, import_react.useState)(false);
   const [fabVisible, setFabVisible] = (0, import_react.useState)(false);
+  const [officialDrawer, setOfficialDrawer] = (0, import_react.useState)(false);
   (0, import_react.useLayoutEffect)(() => {
     if (!mobile) {
       setOpen(false);
+      setOfficialDrawer(false);
       return;
     }
     const frame = findFrame();
     if (frame === null) return;
     frame.setAttribute("data-mobile-nav", "frame");
-    const sync = () => setOpen(!frame.hasAttribute("data-sidebar-collapsed"));
+    const sync = () => {
+      setOpen(!frame.hasAttribute("data-sidebar-collapsed"));
+      setOfficialDrawer(frame.hasAttribute(OFFICIAL_DRAWER_ATTR));
+    };
     sync();
     const observer = new MutationObserver(sync);
-    observer.observe(frame, { attributes: true, attributeFilter: ["data-sidebar-collapsed"] });
+    observer.observe(frame, {
+      attributes: true,
+      attributeFilter: ["data-sidebar-collapsed", OFFICIAL_DRAWER_ATTR]
+    });
     return () => {
       observer.disconnect();
       frame.removeAttribute("data-mobile-nav");
@@ -300,15 +309,15 @@ function MobileNavOverlay({ toggleSidebar, t }) {
     return () => observer.disconnect();
   }, [mobile]);
   (0, import_react.useEffect)(() => {
-    if (!mobile || !open) return;
+    if (!mobile || officialDrawer || !open) return;
     const onKeyDown = (event) => {
       if (event.key === "Escape" && document.querySelector('[aria-modal="true"]') === null) toggleSidebar();
     };
     document.addEventListener("keydown", onKeyDown, true);
     return () => document.removeEventListener("keydown", onKeyDown, true);
-  }, [mobile, open, toggleSidebar]);
+  }, [mobile, open, officialDrawer, toggleSidebar]);
   (0, import_react.useEffect)(() => {
-    if (!mobile || !open) return;
+    if (!mobile || officialDrawer || !open) return;
     let lastTouchNavAt = 0;
     let lastTouchX = 0;
     let lastTouchY = 0;
@@ -406,9 +415,9 @@ function MobileNavOverlay({ toggleSidebar, t }) {
       document.removeEventListener("click", onDrawerClick, true);
       document.removeEventListener("pointerup", onDrawerPointerUp, true);
     };
-  }, [mobile, open, toggleSidebar]);
+  }, [mobile, open, officialDrawer, toggleSidebar]);
   (0, import_react.useEffect)(() => {
-    if (!mobile || !open) return;
+    if (!mobile || officialDrawer || !open) return;
     const onOutsideClick = (event) => {
       if (document.querySelector('[aria-modal="true"]') !== null) return;
       const target = event.target;
@@ -423,9 +432,9 @@ function MobileNavOverlay({ toggleSidebar, t }) {
     };
     document.addEventListener("click", onOutsideClick, true);
     return () => document.removeEventListener("click", onOutsideClick, true);
-  }, [mobile, open, toggleSidebar]);
+  }, [mobile, open, officialDrawer, toggleSidebar]);
   if (!mobile) return null;
-  return /* @__PURE__ */ React.createElement(React.Fragment, null, open && /* @__PURE__ */ React.createElement("div", { "data-mobile-nav": "backdrop" }), fabVisible && !open && /* @__PURE__ */ React.createElement(
+  return /* @__PURE__ */ React.createElement(React.Fragment, null, open && !officialDrawer && /* @__PURE__ */ React.createElement("div", { "data-mobile-nav": "backdrop" }), fabVisible && !open && /* @__PURE__ */ React.createElement(
     "button",
     {
       type: "button",
@@ -662,16 +671,24 @@ var MOBILE_CSS = `
     touch-action: manipulation !important;
   }
 
-  /* AppFrame: the drawer takes the sidebar column out of grid flow, so the
+  /* AppFrame: with our own drawer the sidebar column leaves grid flow, so the
      remaining in-flow items (center, details) land in tracks 1..2: give the
      center every pixel and keep the details track at zero. The top padding
      clears the status bar / notch for every in-flow surface (session header,
      messages, composer); the absolutely-positioned drawer is unaffected (its
-     containing block is the frame's padding box, i.e. still the frame top). */
+     containing block is the frame's padding box, i.e. still the frame top).
+
+     DSH 0.2.2 \u8D77\u7A84\u5C4F\uFF08<768px\uFF09\u5B98\u65B9\u81EA\u5E26\u62BD\u5C49\uFF0Cframe \u5728 drawer \u6A21\u5F0F\u5E26
+     data-sidebar-drawer\uFF0C\u5217\u5BBD\u4E0E\u62BD\u5C49\u5B9A\u4F4D\u90FD\u7531\u5B98\u65B9\u7B97\u597D\u3002\u63D2\u4EF6\u4E0D\u518D\u91CD\u753B\u5B83\uFF1A
+     \u4E0B\u9762\u6240\u6709 drawer \u7ED3\u6784\u89C4\u5219\u90FD\u6302\u5728 :not([data-sidebar-drawer]) \u4E0A\uFF0C\u53EA\u5728
+     \u5B98\u65B9\u6CA1\u6709\u62BD\u5C49\u7684\u5BBD\u5EA6\u6BB5\uFF08768\u20131023px\uFF0C\u5B98\u65B9\u7ED9\u7684\u662F\u56FE\u6807 rail\uFF09\u548C\u8001\u7248\u672C\u5BBF\u4E3B
+     \u751F\u6548 \u2014\u2014 \u90A3\u6BB5\u4ECD\u7531\u63D2\u4EF6\u628A rail \u6362\u6210\u62BD\u5C49\u3002 */
   [data-mobile-nav="frame"] {
     position: relative !important;
-    grid-template-columns: minmax(0, 1fr) 0 0 !important;
     padding-top: env(safe-area-inset-top, 0px) !important;
+  }
+  [data-mobile-nav="frame"]:not([data-sidebar-drawer]) {
+    grid-template-columns: minmax(0, 1fr) 0 0 !important;
   }
 
   /* \u4E3B\u5185\u5BB9\u5217\u5728\u5B98\u65B9\u6837\u5F0F\u91CC\u6709\u663E\u5F0F grid-column: 2\u2014\u2014
@@ -685,7 +702,7 @@ var MOBILE_CSS = `
      > :nth-child(2) \u4ECE\u4E3B\u5185\u5BB9\u5217\u53D8\u6210\u4E86\u4FA7\u8FB9\u680F\u5217\uFF0C\u4E3B\u5185\u5BB9\u5217\u7559\u5728 0px \u7684\u7B2C 2 \u8F68
      \u2014\u2014 \u624B\u673A\u4E0A\u6574\u4E2A\u4F1A\u8BDD\u754C\u9762\u6D88\u5931\uFF08\u53EA\u5269\u80CC\u666F\uFF09\u3002\u6539\u7528\u5B98\u65B9\u7C7B\u540D\u540E\u7F00\u5B9A\u4F4D\uFF0C\u4E0E\u5143\u7D20
      \u987A\u5E8F\u89E3\u8026\uFF08\u7C7B\u540D\u5F62\u5982 gURaQa_centerCol\uFF0C\u54C8\u5E0C\u524D\u7F00\u6BCF\u6B21\u6784\u5EFA\u90FD\u4F1A\u53D8\uFF09\u3002 */
-  [data-mobile-nav="frame"] > [class*="_centerCol"] {
+  [data-mobile-nav="frame"]:not([data-sidebar-drawer]) > [class*="_centerCol"] {
     grid-column: 1 !important;
     grid-row: 1 !important;
     min-width: 0 !important;
@@ -718,8 +735,10 @@ var MOBILE_CSS = `
      div[data-sidebar-mask] in drawer mode, not the sidebar column, so the
      drawer styling used to land on the mask (an opaque 92vw sheet) while the
      real sidebar column stayed in the grid. Target the official class suffix
-     instead (gURaQa_sidebarCol; the hash prefix changes every build). */
-  [data-mobile-nav="frame"] > [class*="_sidebarCol"] {
+     instead (gURaQa_sidebarCol; the hash prefix changes every build).
+     \u5B98\u65B9 drawer \u6A21\u5F0F\uFF08<768px\uFF09\u6574\u6BB5\u8DF3\u8FC7\uFF1A\u90A3\u4E00\u6BB5\u7531\u4E0A\u9762\u7684 :not() \u95E8\u63A7\u6321\u6389\uFF0C\u5B98\u65B9
+     \u81EA\u5DF1\u5C31\u662F\u62BD\u5C49\uFF1B\u8FD9\u91CC\u7684\u6309\u7C7B\u540D\u5B9A\u4F4D\u53EA\u670D\u52A1 768\u20131023px \u7684 rail\u2192\u62BD\u5C49\u6539\u5199\u3002 */
+  [data-mobile-nav="frame"]:not([data-sidebar-drawer]) > [class*="_sidebarCol"] {
     position: absolute !important;
     inset: 0 auto 0 0 !important;
     width: max-content !important;
@@ -793,18 +812,21 @@ var MOBILE_CSS = `
      overflow:hidden drawer to scrollLeft=102, and every static child (plus the
      fixed overlay) shifts 102px off-screen. With transform:none the overlay is
      viewport-anchored: it dims the full screen and the sheet sits at left:8. */
-  [data-mobile-nav="frame"]:not([data-sidebar-collapsed]) > [class*="_sidebarCol"] {
+  [data-mobile-nav="frame"]:not([data-sidebar-drawer]):not([data-sidebar-collapsed]) > [class*="_sidebarCol"] {
     transform: none !important;
   }
 
   /* DSH 0.2.2's native drawer ships its own backdrop, and it is not a
-     passive layer: it calls toggleSidebar() on tap. We render our own
-     backdrop and close on outside taps in JS, so a tap on theirs toggles the
-     drawer twice (close then reopen) \u2014 the drawer looks stuck open. Drop it
-     and keep ours, exactly like the dsh-web-ui-all mask below (issue #67). */
-  [data-mobile-nav="frame"] > [data-sidebar-mask] {
-    display: none !important;
-  }
+     passive layer: it calls toggleSidebar() on tap. Previously we hid it and
+     kept our own backdrop + JS outside-tap handler, because the two together
+     toggled twice (close then reopen) and the drawer looked stuck open.
+     Since the plugin now steps aside completely in official drawer mode (all
+     structural rules above are gated on :not([data-sidebar-drawer])), the
+     official mask is the one and only backdrop there \u2014 it must stay visible,
+     and MobileNavOverlay must not add its own backdrop or outside-tap handler
+     in that mode (see MobileNavOverlay's officialDrawer state).
+     dsh-web-ui-all's competing full-screen ::after mask below is a different
+     layer and is still dropped (issue #67). */
 
   /* Kill a competing full-screen mask (issue #67).
      @linxin666/dsh-web-ui-all ships its own mobile drawer, and part of it is

@@ -208,30 +208,56 @@ test('body 级模态层必须高于抽屉，否则展开的侧边栏会挡住「
   );
 });
 
-test('DSH 0.2.2 自带抽屉：按类名定位，并让位给官方遮罩', () => {
+test('DSH 0.2.2 自带抽屉：插件整段让位，不再重画', () => {
   const css = readFileSync(new URL('../client/mobile/mobile.css.ts', import.meta.url), 'utf8');
-  // 0.2.2 的 AppFrame 在窄屏开启自带抽屉（.frame[data-sidebar-drawer]），并在
-  // frame 里插入 div[data-sidebar-mask] 作为第一个子元素。于是位置选择器整体
-  // 错位：> :first-child 命中遮罩、> :nth-child(2) 命中侧边栏列，主内容列留在
-  // 0px 的第 2 轨 —— 手机上整个会话界面消失。必须改用官方类名后缀定位。
+  const overlay = readFileSync(new URL('../client/mobile/MobileNavOverlay.tsx', import.meta.url), 'utf8');
+  // 0.2.2 的 AppFrame 在窄屏（<768px，SIDEBAR_DRAWER_BREAKPOINT）自带抽屉：
+  // frame 上带 data-sidebar-drawer，官方负责列宽、遮罩、外点关闭与焦点。
+  // 插件只保留「官方没有抽屉」的宽度段（768–1023px，官方那里是图标 rail）
+  // 和老版本宿主 —— 所有抽屉结构规则都门控在 :not([data-sidebar-drawer])。
   assert.ok(
-    /\[data-mobile-nav="frame"\]\s*>\s*\[class\*="_centerCol"\]\s*\{[^}]*grid-column:\s*1\s*!/.test(css),
-    '主内容列必须按类名（_centerCol）拉回第 1 轨，不能按子元素序号',
+    /\[data-mobile-nav="frame"\]:not\(\[data-sidebar-drawer\]\)\s*\{[^}]*grid-template-columns/.test(css),
+    '网格压缩必须门控在 :not([data-sidebar-drawer]) 上',
   );
   assert.ok(
-    /\[data-mobile-nav="frame"\]\s*>\s*\[class\*="_sidebarCol"\]\s*\{[^}]*position:\s*absolute\s*!/.test(css),
-    '抽屉必须按类名（_sidebarCol）定位，不能按子元素序号',
+    /\[data-mobile-nav="frame"\]:not\(\[data-sidebar-drawer\]\)\s*>\s*\[class\*="_centerCol"\]\s*\{[^}]*grid-column:\s*1\s*!/.test(css),
+    '主内容列的拉回规则必须门控在 :not([data-sidebar-drawer]) 上',
+  );
+  assert.ok(
+    /\[data-mobile-nav="frame"\]:not\(\[data-sidebar-drawer\]\)\s*>\s*\[class\*="_sidebarCol"\]\s*\{[^}]*position:\s*absolute\s*!/.test(css),
+    '抽屉列定位必须门控在 :not([data-sidebar-drawer]) 上',
+  );
+  assert.ok(
+    /\[data-mobile-nav="frame"\]:not\(\[data-sidebar-drawer\]\):not\(\[data-sidebar-collapsed\]\)\s*>\s*\[class\*="_sidebarCol"\]/.test(css),
+    '展开态的回位规则同样要门控',
   );
   assert.ok(
     !/\[data-mobile-nav="frame"\][^{]*>\s*:first-child\s*[,{]/.test(css)
       && !/\[data-mobile-nav="frame"\][^{]*>\s*:nth-child\(\d+\)\s*[,{]/.test(css),
     'frame 上不许再用 > :first-child / > :nth-child(N)（官方插入新节点就会错位）',
   );
-  // 官方遮罩在点击时调 toggleSidebar()，而我们在 JS 里也会关抽屉：一次点击
-  // 触发两次 toggle，抽屉关了又立刻弹回来，看起来「关不掉」。
+  // 官方抽屉模式下官方遮罩是唯一的 backdrop（点击它自己会 toggleSidebar）。
+  // 插件再 display:none 掉它，就只能靠自己的 JS 关抽屉；两边各 toggle 一次，
+  // 净效果是抽屉关不掉。所以这条屏蔽规则必须消失。
   assert.ok(
-    /\[data-mobile-nav="frame"\]\s*>\s*\[data-sidebar-mask\]\s*\{[^}]*display:\s*none\s*!/.test(css),
-    '必须屏蔽官方抽屉遮罩，避免一次点击 toggle 两次',
+    !/\[data-sidebar-mask\]\s*\{[^}]*display:\s*none/.test(css),
+    '官方抽屉模式下必须保留官方遮罩，插件不再屏蔽',
+  );
+  // JS 侧同步让位：不画 backdrop、不挂外点/导航/Esc 关闭（否则一次点击
+  // 被官方遮罩和插件各处理一次，toggle 两次 = 抽屉不关）。
+  assert.ok(
+    overlay.includes("const OFFICIAL_DRAWER_ATTR = 'data-sidebar-drawer'"),
+    '组件要认官方抽屉标记',
+  );
+  assert.ok(/open && !officialDrawer &&/.test(overlay), '官方抽屉模式下不渲染插件 backdrop');
+  assert.equal(
+    (overlay.match(/if \(!mobile \|\| officialDrawer \|\| !open\) return/g) ?? []).length,
+    3,
+    'Esc / 导航关闭 / 点抽屉外三个效果都要在官方抽屉模式整体让位',
+  );
+  assert.ok(
+    overlay.includes("attributeFilter: ['data-sidebar-collapsed', OFFICIAL_DRAWER_ATTR]"),
+    '官方标记变化要驱动组件重新判断（同一切换宽度下 rail↔drawer 会变）',
   );
 });
 

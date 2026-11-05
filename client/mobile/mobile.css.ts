@@ -172,16 +172,24 @@ export const MOBILE_CSS = `
     touch-action: manipulation !important;
   }
 
-  /* AppFrame: the drawer takes the sidebar column out of grid flow, so the
+  /* AppFrame: with our own drawer the sidebar column leaves grid flow, so the
      remaining in-flow items (center, details) land in tracks 1..2: give the
      center every pixel and keep the details track at zero. The top padding
      clears the status bar / notch for every in-flow surface (session header,
      messages, composer); the absolutely-positioned drawer is unaffected (its
-     containing block is the frame's padding box, i.e. still the frame top). */
+     containing block is the frame's padding box, i.e. still the frame top).
+
+     DSH 0.2.2 起窄屏（<768px）官方自带抽屉，frame 在 drawer 模式带
+     data-sidebar-drawer，列宽与抽屉定位都由官方算好。插件不再重画它：
+     下面所有 drawer 结构规则都挂在 :not([data-sidebar-drawer]) 上，只在
+     官方没有抽屉的宽度段（768–1023px，官方给的是图标 rail）和老版本宿主
+     生效 —— 那段仍由插件把 rail 换成抽屉。 */
   [data-mobile-nav="frame"] {
     position: relative !important;
-    grid-template-columns: minmax(0, 1fr) 0 0 !important;
     padding-top: env(safe-area-inset-top, 0px) !important;
+  }
+  [data-mobile-nav="frame"]:not([data-sidebar-drawer]) {
+    grid-template-columns: minmax(0, 1fr) 0 0 !important;
   }
 
   /* 主内容列在官方样式里有显式 grid-column: 2——
@@ -195,7 +203,7 @@ export const MOBILE_CSS = `
      > :nth-child(2) 从主内容列变成了侧边栏列，主内容列留在 0px 的第 2 轨
      —— 手机上整个会话界面消失（只剩背景）。改用官方类名后缀定位，与元素
      顺序解耦（类名形如 gURaQa_centerCol，哈希前缀每次构建都会变）。 */
-  [data-mobile-nav="frame"] > [class*="_centerCol"] {
+  [data-mobile-nav="frame"]:not([data-sidebar-drawer]) > [class*="_centerCol"] {
     grid-column: 1 !important;
     grid-row: 1 !important;
     min-width: 0 !important;
@@ -228,8 +236,10 @@ export const MOBILE_CSS = `
      div[data-sidebar-mask] in drawer mode, not the sidebar column, so the
      drawer styling used to land on the mask (an opaque 92vw sheet) while the
      real sidebar column stayed in the grid. Target the official class suffix
-     instead (gURaQa_sidebarCol; the hash prefix changes every build). */
-  [data-mobile-nav="frame"] > [class*="_sidebarCol"] {
+     instead (gURaQa_sidebarCol; the hash prefix changes every build).
+     官方 drawer 模式（<768px）整段跳过：那一段由上面的 :not() 门控挡掉，官方
+     自己就是抽屉；这里的按类名定位只服务 768–1023px 的 rail→抽屉改写。 */
+  [data-mobile-nav="frame"]:not([data-sidebar-drawer]) > [class*="_sidebarCol"] {
     position: absolute !important;
     inset: 0 auto 0 0 !important;
     width: max-content !important;
@@ -303,18 +313,21 @@ export const MOBILE_CSS = `
      overflow:hidden drawer to scrollLeft=102, and every static child (plus the
      fixed overlay) shifts 102px off-screen. With transform:none the overlay is
      viewport-anchored: it dims the full screen and the sheet sits at left:8. */
-  [data-mobile-nav="frame"]:not([data-sidebar-collapsed]) > [class*="_sidebarCol"] {
+  [data-mobile-nav="frame"]:not([data-sidebar-drawer]):not([data-sidebar-collapsed]) > [class*="_sidebarCol"] {
     transform: none !important;
   }
 
   /* DSH 0.2.2's native drawer ships its own backdrop, and it is not a
-     passive layer: it calls toggleSidebar() on tap. We render our own
-     backdrop and close on outside taps in JS, so a tap on theirs toggles the
-     drawer twice (close then reopen) — the drawer looks stuck open. Drop it
-     and keep ours, exactly like the dsh-web-ui-all mask below (issue #67). */
-  [data-mobile-nav="frame"] > [data-sidebar-mask] {
-    display: none !important;
-  }
+     passive layer: it calls toggleSidebar() on tap. Previously we hid it and
+     kept our own backdrop + JS outside-tap handler, because the two together
+     toggled twice (close then reopen) and the drawer looked stuck open.
+     Since the plugin now steps aside completely in official drawer mode (all
+     structural rules above are gated on :not([data-sidebar-drawer])), the
+     official mask is the one and only backdrop there — it must stay visible,
+     and MobileNavOverlay must not add its own backdrop or outside-tap handler
+     in that mode (see MobileNavOverlay's officialDrawer state).
+     dsh-web-ui-all's competing full-screen ::after mask below is a different
+     layer and is still dropped (issue #67). */
 
   /* Kill a competing full-screen mask (issue #67).
      @linxin666/dsh-web-ui-all ships its own mobile drawer, and part of it is
