@@ -129,18 +129,6 @@ export const MOBILE_CSS = `
   from { opacity: 0; }
   to { opacity: 1; }
 }
-/* Settings sheet entrance: the official dialog mounts with no animation at
-   all, so it snaps in. Fade + slight rise/scale reads as a proper sheet. */
-@keyframes dsh-mobile-nav-sheet-in {
-  from {
-    opacity: 0;
-    transform: translateY(14px) scale(.98);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
 /* Preview sheet rise: the aionui preview column opens as a bottom sheet. */
 @keyframes dsh-mobile-nav-sheet-up {
   from {
@@ -307,12 +295,12 @@ export const MOBILE_CSS = `
   /* Expanded state (frame without data-sidebar-collapsed) slides the drawer in.
      The open state must be transform:none — NOT translateX(0): an identity
      transform still makes the drawer the containing block for fixed-position
-     descendants (the settings dialog's .VOzbGW_overlay is portaled into the
-     sidebar DOM). With the identity transform the wide settings sheet
-     (100vw-16) overflows the 280px drawer, the dialog's focus scrolls the
+     descendants, and dialog overlays (settings / export / platform prompts) do
+     get portaled into the sidebar DOM. With the identity transform a
+     viewport-wide panel overflows the 280px drawer, focusing it scrolls the
      overflow:hidden drawer to scrollLeft=102, and every static child (plus the
-     fixed overlay) shifts 102px off-screen. With transform:none the overlay is
-     viewport-anchored: it dims the full screen and the sheet sits at left:8. */
+     fixed overlay) shifts 102px off-screen. With transform:none overlays stay
+     viewport-anchored. */
   [data-mobile-nav="frame"]:not([data-sidebar-drawer]):not([data-sidebar-collapsed]) > [class*="_sidebarCol"] {
     transform: none !important;
   }
@@ -575,120 +563,16 @@ export const MOBILE_CSS = `
   }
 
   /* --- Settings dialog on mobile ---
-     Desktop: 800px two-column flex (188px nav + content). Mobile: a
-     near-full-width sheet — nav tabs wrap into rows on top, option rows
-     stay horizontal (title+description left, control right). Structural
-     selectors are scoped to the unique aria-modal dialog; every
-     settings-specific rule is gated with
-     :has(> :first-child > :last-child > button) — the settings nav tab
-     list holds <button> tabs, so the transient export dialog (the same
-     primitives Modal, header(title+close)+description+body) keeps its
-     official centered card layout. Requires :has() support
-     (Chromium 105+, 2022). */
-  [aria-modal="true"]:has(> :first-child > :last-child > button):not(:has([role="navigation"])) {
-    position: absolute !important;
-    left: 8px !important;
-    /* Fixed top (no translateY): a transform on the panel combined with the
-       panel overflowing the max-content drawer shifts the fixed overlay's
-       coordinate frame, dragging the whole sidebar content off-screen. The
-       safe-area inset keeps the sheet below the status bar / notch. */
-    top: calc(env(safe-area-inset-top, 0px) + 12px) !important;
-    width: calc(100vw - 16px) !important;
-    max-width: calc(100vw - 16px) !important;
-    /* Height follows the content (no dead space under a short page); it
-       caps at 100dvh-24 (less the safe-area top) and the options area
-       scrolls only then. */
-    height: auto !important;
-    max-height: min(800px, calc(100vh - 24px - env(safe-area-inset-top, 0px))) !important;
-    max-height: min(800px, calc(100dvh - 24px - env(safe-area-inset-top, 0px))) !important;
-    flex-direction: column !important;
-    border-radius: 14px !important;
-    animation: dsh-mobile-nav-sheet-in .22s var(--ds-ease-out, ease-in-out);
-  }
-  /* The settings sheet's dimmed mask fades in with the panel (the mask is
-     the first child of the overlay that directly contains the sheet). */
-  :has(> [aria-modal="true"]:has(> :first-child > :last-child > button):not(:has([role="navigation"]))) > :first-child {
-    animation: dsh-mobile-nav-fade .18s var(--ds-ease-out, ease-in-out);
-  }
-  @media (prefers-reduced-motion: reduce) {
-    [aria-modal="true"]:has(> :first-child > :last-child > button):not(:has([role="navigation"])),
-    :has(> [aria-modal="true"]:has(> :first-child > :last-child > button):not(:has([role="navigation"]))) > :first-child {
-      animation: none !important;
-    }
-  }
-  /* The export dialog (not the settings sheet) must never overflow the
-     viewport: the official centered card can be wider than 390px. */
+     Official DSH >= 0.2.2 owns this: SettingsRoot.module.css turns the
+     dialog into a full-height panel below 768px (stacked title/header, a
+     horizontally scrolling nav row, options sharing the remaining height),
+     and its desktop two-column panel already fits 768-1023px through
+     max-width: calc(100vw - 48px). Restyling the sheet here would only
+     fight the official layout, so the plugin keeps a single guard for the
+     transient export dialog - same Modal primitives but no nav tab list -
+     whose centered card can still be wider than a 390px viewport. */
   [aria-modal="true"]:not(:has(> :first-child > :last-child > button)) {
     max-width: calc(100vw - 32px) !important;
-  }
-  /* Nav bar: hide the "Settings" caption (redundant on a full-width sheet)
-     and wrap the tab list so every tab is visible — a horizontal scroll cut
-     the last tab ("Plugins") off with no affordance to scroll. */
-  [aria-modal="true"]:has(> :first-child > :last-child > button):not(:has([role="navigation"])) > :first-child {
-    width: 100% !important;
-    flex-direction: row !important;
-    align-items: center !important;
-    gap: 6px !important;
-    padding: 10px 12px 8px !important;
-  }
-  [aria-modal="true"]:has(> :first-child > :last-child > button):not(:has([role="navigation"])) > :first-child > :first-child {
-    display: none !important;
-  }
-  [aria-modal="true"]:has(> :first-child > :last-child > button):not(:has([role="navigation"])) > :first-child > :last-child {
-    flex-direction: row !important;
-    flex-wrap: wrap !important;
-    width: 100% !important;
-    gap: 6px !important;
-    overflow: visible !important;
-  }
-  /* Content toolbar (Open configuration file + close): spread to the edges
-     instead of clustering right with a dead zone on the left. The toolbar
-     children carry official auto-margins that would defeat space-between,
-     so neutralize them. The close button gets a round tappable base so it
-     reads as its own control, not part of the outline button. */
-  [aria-modal="true"]:has(> :first-child > :last-child > button):not(:has([role="navigation"])) > :last-child > :first-child {
-    justify-content: space-between !important;
-    align-items: center !important;
-    padding: 0 12px !important;
-    min-height: 40px !important;
-  }
-  [aria-modal="true"]:has(> :first-child > :last-child > button):not(:has([role="navigation"])) > :last-child > :first-child > * {
-    margin-left: 0 !important;
-    margin-right: 0 !important;
-  }
-  [aria-modal="true"]:has(> :first-child > :last-child > button):not(:has([role="navigation"])) > :last-child > :first-child > :last-child {
-    width: 32px !important;
-    height: 32px !important;
-    border-radius: 50% !important;
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    background: var(--dsw-alias-interactive-bg-hover, rgba(0, 0, 0, .06)) !important;
-  }
-  /* Appearance mode cards: the official cube row renders three tall
-     vertical cards (~268px) that eat half the sheet. Turn them into a
-     compact horizontal trio (icon + label inline, equal widths).
-     Relies on the official cube-row class name of this version. */
-  [aria-modal="true"] [class$="_cubeRow"] {
-    gap: 6px !important;
-  }
-  [aria-modal="true"] [class$="_cubeRow"] > * {
-    flex: 1 1 0 !important;
-    flex-direction: row !important;
-    align-items: center !important;
-    justify-content: center !important;
-    gap: 6px !important;
-    padding: 10px 8px !important;
-    min-height: 0 !important;
-  }
-  /* Content: the options scroll area gets bottom breathing room so the last
-     row never sits flush against the sheet's rounded corner. */
-  [aria-modal="true"]:has(> :first-child > :last-child > button):not(:has([role="navigation"])) > :last-child {
-    flex: 1 1 auto !important;
-    min-height: 0 !important;
-  }
-  [aria-modal="true"]:has(> :first-child > :last-child > button):not(:has([role="navigation"])) > :last-child > :last-child {
-    padding: 0 12px 24px !important;
   }
 
   /* ---------- dsh-web-ui family compatibility ----------
@@ -844,50 +728,6 @@ export const MOBILE_CSS = `
     flex: 0 0 auto !important;
     width: 100% !important;
     min-width: 0 !important;
-  }
-
-  /* ---------- dsh-web-ui polish: settings sheet ----------
-     The official dialog is a desktop two-column form; on a phone the
-     label/control split leaves a huge dead gap and long descriptions wrap
-     into tall stacks. Stack each row (text above, control full-width) and
-     compact the nav tabs into an even wrap. */
-
-  /* Nav tabs: a stable 3-per-row grid (two clean rows instead of a ragged
-     wrap) with tighter cells. */
-  [aria-modal="true"]:has(> :first-child > :last-child > button):not(:has([role="navigation"])) > :first-child > :last-child {
-    display: grid !important;
-    grid-template-columns: repeat(3, 1fr) !important;
-    gap: 6px !important;
-  }
-  [aria-modal="true"] [class$="_navCell"] {
-    padding: 6px 8px !important;
-    gap: 6px !important;
-    font-size: 13px !important;
-    justify-content: flex-start !important;
-  }
-  [aria-modal="true"] [class$="_navCell"] svg {
-    width: 14px !important;
-    height: 14px !important;
-    flex: none !important;
-  }
-  /* Setting rows: text on top, control below at full width. */
-  [aria-modal="true"] [class$="_section"] [class$="_row"] {
-    flex-direction: column !important;
-    align-items: stretch !important;
-    gap: 8px !important;
-  }
-  [aria-modal="true"] [class$="_section"] [class$="_row"] > :first-child {
-    width: 100% !important;
-    max-width: none !important;
-  }
-  [aria-modal="true"] [class$="_section"] [class$="_row"] > :last-child {
-    width: 100% !important;
-    max-width: none !important;
-  }
-  /* Appearance mode group: give the cube row a consistent bordered
-     segmented look (the official borders differ per state). */
-  [aria-modal="true"] [class$="_cubeRow"] > * {
-    border: 1px solid var(--dsw-alias-border-l1, rgba(0, 0, 0, .12)) !important;
   }
 
   /* ---------- dsh-web-ui polish: explorer sheet ----------
@@ -1094,9 +934,12 @@ export const MOBILE_CSS = `
 /* ---------- mobile: stop iOS Safari forced zoom on input focus ----------
  * Inputs are rendered with inline fontSize 13-14px, below the 16px threshold
  * that makes iOS Safari zoom the whole page on focus (and never recover).
- * Force the safe 16px minimum on narrow viewports only, so desktop keeps its
- * tighter metrics. !important is required to beat the inline styles. */
-@media (max-width: 1024px) {
+ * Gate on pointer capability, not viewport width: the official client already
+ * lifts the composer card to 16px on coarse pointers, but every other input
+ * (search fields, dialog forms, plugin pages) still ships 13-14px, while a
+ * narrow desktop window driven by a mouse must keep its tighter metrics.
+ * !important is required to beat the inline styles. */
+@media (pointer: coarse) {
   input,
   textarea,
   [contenteditable="true"] {
