@@ -1452,6 +1452,75 @@ var MOBILE_CSS = `
 
 `;
 
+// client/mobile/enter-key.mjs
+var SOFT_KEYBOARD_GAP = 80;
+var COMPOSER_INPUT = "[data-composer-input]";
+function classifyEnter(event, env) {
+  if (event.key !== "Enter") return "pass";
+  if (!env.coarsePointer) return "pass";
+  if (event.isComposing === true || event.keyCode === 229) return "pass";
+  if (event.shiftKey === true || event.altKey === true || event.ctrlKey === true || event.metaKey === true) return "pass";
+  if (event.firesTouchEvents === false) return "pass";
+  if (event.firesTouchEvents === true) return "line-break";
+  return env.softKeyboardOpen ? "line-break" : "pass";
+}
+function softKeyboardOpen(view) {
+  const visual = view?.visualViewport;
+  if (!visual) return true;
+  return view.innerHeight - visual.height > SOFT_KEYBOARD_GAP;
+}
+function firesTouchEvents(event) {
+  const caps = event.sourceCapabilities;
+  return typeof caps?.firesTouchEvents === "boolean" ? caps.firesTouchEvents : null;
+}
+function coarsePointer(view) {
+  return typeof view.matchMedia === "function" && view.matchMedia("(pointer: coarse)").matches;
+}
+function rewriteAsShiftEnter(event) {
+  try {
+    Object.defineProperty(event, "shiftKey", { configurable: true, value: true });
+    return true;
+  } catch {
+    event.preventDefault();
+    event.stopPropagation();
+    return false;
+  }
+}
+function insideComposer(event, view) {
+  const target = event.target;
+  if (target instanceof view.Element && target.closest?.(COMPOSER_INPUT) != null) return true;
+  if (typeof event.composedPath !== "function") return false;
+  return event.composedPath().some(
+    (node) => node instanceof view.Element && node.hasAttribute?.(COMPOSER_INPUT) === true
+  );
+}
+function startMobileEnterKey(view = globalThis.window) {
+  if (!view) return () => {
+  };
+  const doc = view.document;
+  const onKeyDown = (event) => {
+    if (event.defaultPrevented === true) return;
+    if (!insideComposer(event, view)) return;
+    const policy = classifyEnter(
+      {
+        key: event.key,
+        isComposing: event.isComposing,
+        keyCode: event.keyCode,
+        shiftKey: event.shiftKey,
+        altKey: event.altKey,
+        ctrlKey: event.ctrlKey,
+        metaKey: event.metaKey,
+        firesTouchEvents: firesTouchEvents(event)
+      },
+      { coarsePointer: coarsePointer(view), softKeyboardOpen: softKeyboardOpen(view) }
+    );
+    if (policy !== "line-break") return;
+    rewriteAsShiftEnter(event);
+  };
+  doc.addEventListener("keydown", onKeyDown, true);
+  return () => doc.removeEventListener("keydown", onKeyDown, true);
+}
+
 // client/mobile/locales.ts
 var NS = "pocketMobileNav";
 var zh = {
@@ -1518,6 +1587,7 @@ function mobileApply(ctx) {
       tag.remove();
     };
   }, "dsh-mobile-nav: styles");
+  ctx.effect(() => startMobileEnterKey(), "dsh-mobile-nav: soft-keyboard Enter inserts a line break");
   ctx.effect(() => {
     const viewport = document.querySelector('meta[name="viewport"]');
     const originalViewport = viewport?.content ?? "";

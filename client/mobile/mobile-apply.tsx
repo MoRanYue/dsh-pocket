@@ -5,6 +5,7 @@ import { MobileNavOverlay } from './MobileNavOverlay.tsx'
 import { MobileDrawerFooter } from './MobileDrawerFooter.tsx'
 import { startAddWorkspaceHider } from './add-workspace.ts'
 import { MOBILE_CSS } from './mobile.css.ts'
+import { startMobileEnterKey } from './enter-key.mjs'
 import { NS, en, zh } from './locales.ts'
 import type { MobileNavKey } from './locales.ts'
 import { resolveLayout, persistLayoutFromUrl } from './layout-mode.mjs'
@@ -56,6 +57,12 @@ export function mobileApply(ctx): void {
       tag.remove()
     }
   }, 'dsh-mobile-nav: styles')
+
+  // 手机软键盘的回车 = 换行：虚拟键盘上没有 Shift+Enter，官方把裸回车当发送，
+  // 长段落就永远敲不出来。这里只在捕获阶段把软键盘的裸回车改写成 Shift+Enter
+  // （详见 enter-key.mjs）；接了物理键盘的移动端识别为硬件键盘，保持官方的
+  // 「回车发送、Shift+Enter 换行」。
+  ctx.effect(() => startMobileEnterKey(), 'dsh-mobile-nav: soft-keyboard Enter inserts a line break')
 
   // Phone chrome: KEEP the system status bar (no fullscreen) and make it
   // blend into the page. On narrow screens:
