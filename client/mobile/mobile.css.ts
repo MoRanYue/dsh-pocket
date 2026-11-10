@@ -9,9 +9,13 @@
  * - `[data-shell-overlay]`         AppFrame overlay layer (used to locate the frame)
  * - `[data-phase]`                 conversation root phase (hero|active|settling)
  *
- * Below the official auto-collapse breakpoint (1024px) the rail is removed
- * from the grid entirely; the sidebar column becomes an overlay drawer that
- * slides in when the frame leaves the collapsed state (narrowExpanded).
+ * Below 768px (the official SIDEBAR_DRAWER_BREAKPOINT) DSH ships its own
+ * overlay drawer — mask, outside-tap close, Escape and focus are official,
+ * so the plugin leaves the columns alone and only adds what the official
+ * client does not cover (safe-area chrome, touch metrics, dsh-web-ui compat).
+ * The drawer restructure below therefore only fills in on older hosts that
+ * have no official `data-sidebar-drawer` (all rules are gated on its absence);
+ * the 768–1023px auto-collapsed icon rail is left entirely to DSH.
  */
 export const MOBILE_CSS = `
 /* ---------- base control styles (rendered at any width, hidden where unused) ---------- */
@@ -143,7 +147,7 @@ export const MOBILE_CSS = `
 
 /* ---------- mobile-only layout ---------- */
 
-@media (max-width: 1023px) {
+@media (max-width: 767px) {
   /* --- Phone chrome ---
      The system status bar stays visible (no fullscreen). Two adjustments
      make it behave:
@@ -170,8 +174,7 @@ export const MOBILE_CSS = `
      DSH 0.2.2 起窄屏（<768px）官方自带抽屉，frame 在 drawer 模式带
      data-sidebar-drawer，列宽与抽屉定位都由官方算好。插件不再重画它：
      下面所有 drawer 结构规则都挂在 :not([data-sidebar-drawer]) 上，只在
-     官方没有抽屉的宽度段（768–1023px，官方给的是图标 rail）和老版本宿主
-     生效 —— 那段仍由插件把 rail 换成抽屉。 */
+     没有官方抽屉的老版本宿主生效。768–1023px 的图标 rail 也交还官方。 */
   [data-mobile-nav="frame"] {
     position: relative !important;
     padding-top: env(safe-area-inset-top, 0px) !important;
@@ -226,7 +229,7 @@ export const MOBILE_CSS = `
      real sidebar column stayed in the grid. Target the official class suffix
      instead (gURaQa_sidebarCol; the hash prefix changes every build).
      官方 drawer 模式（<768px）整段跳过：那一段由上面的 :not() 门控挡掉，官方
-     自己就是抽屉；这里的按类名定位只服务 768–1023px 的 rail→抽屉改写。 */
+     自己就是抽屉；这里的按类名定位只服务没有官方抽屉的老版本宿主。 */
   [data-mobile-nav="frame"]:not([data-sidebar-drawer]) > [class*="_sidebarCol"] {
     position: absolute !important;
     inset: 0 auto 0 0 !important;
@@ -472,8 +475,8 @@ export const MOBILE_CSS = `
   }
 
   /* --- Session header on mobile ---
-     Layout goal: [toggle] [session title] [mode badge] in a row. The optional
-     rightbar entry uses the shell's stable header-corner hook. */
+     Layout goal: [toggle] [session title] [mode badge] in a row; the shell's
+     own header-corner control keeps the far-right lane. */
   [data-phase] header {
     padding: 8px 12px 0 !important;
   }
@@ -543,23 +546,15 @@ export const MOBILE_CSS = `
   [data-mobile-nav="frame"]:has([data-sidebar-opener]) [data-mobile-nav="fab"] {
     display: none !important;
   }
-  /* The Files action sits at the FAR RIGHT of the header so it reads as a
-     distinct control from the directory toggle on the left (which opens
-     the history sidebar). */
+  /* The Files action sits at the far right of the header, left of the shell's
+     own corner control ([data-conversation-header-corner]: the right-sidebar
+     expand button DSH >= 0.2.2 mounts there), so the two never overlap. */
   [data-mobile-nav="files"] {
     position: absolute !important;
     left: auto !important;
-    right: 8px !important;
+    right: 44px !important;
     top: 12px !important;
     z-index: 2 !important;
-  }
-  /* The native rightbar entry is visible by default. Users who prefer the
-     compact header can turn it off in Pocket settings. */
-  body[data-dsh-pocket-mobile-rightbar="off"] [data-conversation-header-corner] {
-    display: none !important;
-  }
-  body:not([data-dsh-pocket-mobile-rightbar="off"]) [data-mobile-nav="files"] {
-    right: 44px !important;
   }
 
   /* --- Settings dialog on mobile ---
@@ -947,9 +942,11 @@ export const MOBILE_CSS = `
   }
 }
 
-/* ---------- desktop: the mobile controls must never appear ---------- */
+/* ---------- at and above the official drawer breakpoint (768px): the
+   mobile controls must never appear — that width range is official rail /
+   desktop territory, handled entirely by DSH. ---------- */
 
-@media (min-width: 1024px) {
+@media (min-width: 768px) {
   [data-mobile-nav="toggle"],
   [data-mobile-nav="files"],
   [data-mobile-nav="fab"],

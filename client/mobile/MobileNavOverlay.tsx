@@ -20,8 +20,8 @@ export interface MobileNavOverlayProps extends PropsRuntime<'shell.overlay'>, Pr
   toggleSidebar: () => void
 }
 
-/** Same breakpoint as the shell's SIDEBAR_AUTO_COLLAPSE (viewport < 1024). */
-const MOBILE_QUERY = '(max-width: 1023px)'
+/** Same breakpoint as the shell's SIDEBAR_DRAWER_BREAKPOINT (viewport < 768). */
+const MOBILE_QUERY = '(max-width: 767px)'
 
 /**
  * Attribute the shell puts on the AppFrame while it runs its own narrow-screen

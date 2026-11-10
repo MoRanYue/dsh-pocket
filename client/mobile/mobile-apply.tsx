@@ -5,7 +5,6 @@ import { MobileNavOverlay } from './MobileNavOverlay.tsx'
 import { MobileDrawerFooter } from './MobileDrawerFooter.tsx'
 import { startAddWorkspaceHider } from './add-workspace.ts'
 import { MOBILE_CSS } from './mobile.css.ts'
-import { POCKET_RPC_CHANNEL, POCKET_ENDPOINTS, MOBILE_RIGHTBAR_ATTRIBUTE, MOBILE_RIGHTBAR_EVENT } from '../api.js'
 import { NS, en, zh } from './locales.ts'
 import type { MobileNavKey } from './locales.ts'
 import { resolveLayout, persistLayoutFromUrl } from './layout-mode.mjs'
@@ -30,7 +29,10 @@ export function mobileApply(ctx): void {
   // desktop 模式（宽屏手机/平板强制电脑布局）下整段 mobile 效果都不挂——
   // 不加 styles、不挂 slots、不跑 effects，直接走 DSH 原生桌面 UI。
   const urlValue = new URL(window.location.href).searchParams.get('dsh-layout') ?? '';
-  const narrowMQ = window.matchMedia('(max-width: 1023px)');
+  // 与官方 SIDEBAR_DRAWER_BREAKPOINT（768px）对齐：<768 官方就是抽屉，
+  // 插件只做官方没覆盖的部分（安全区、触控、dsh-web-ui 兼容）；
+  // 768–1023 官方是自动折叠的图标 rail + 官方开合按钮，插件不接管。
+  const narrowMQ = window.matchMedia('(max-width: 767px)');
   const stored = persistLayoutFromUrl(urlValue);
   const layout = resolveLayout({ urlValue, stored, narrowMatch: narrowMQ.matches });
   document.body?.setAttribute('data-dsh-pocket-layout', layout);
@@ -43,34 +45,6 @@ export function mobileApply(ctx): void {
   }
 
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'dsh-mobile-nav: dictionaries')
-
-  ctx.effect(() => {
-    let active = true
-    const applyEnabled = (enabled: boolean): void => {
-      document.body?.setAttribute(MOBILE_RIGHTBAR_ATTRIBUTE, enabled ? 'on' : 'off')
-    }
-    const onChange = (event: Event): void => {
-      applyEnabled((event as CustomEvent<{ enabled?: boolean }>).detail?.enabled === true)
-    }
-    const load = async (): Promise<void> => {
-      try {
-        const result = await ctx.connection.rpc.call(POCKET_RPC_CHANNEL, POCKET_ENDPOINTS.status, {}) as {
-          ok?: boolean
-          value?: { mobileRightbarEnabled?: boolean }
-        }
-        if (active) applyEnabled(result?.ok === true ? result.value?.mobileRightbarEnabled !== false : true)
-      } catch {
-        if (active) applyEnabled(true)
-      }
-    }
-    window.addEventListener(MOBILE_RIGHTBAR_EVENT, onChange)
-    void load()
-    return () => {
-      active = false
-      window.removeEventListener(MOBILE_RIGHTBAR_EVENT, onChange)
-      document.body?.removeAttribute(MOBILE_RIGHTBAR_ATTRIBUTE)
-    }
-  }, 'dsh-mobile-nav: optional right sidebar')
 
   ctx.effect(() => {
     const tag = document.createElement('style')

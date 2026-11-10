@@ -213,8 +213,8 @@ test('DSH 0.2.2 自带抽屉：插件整段让位，不再重画', () => {
   const overlay = readFileSync(new URL('../client/mobile/MobileNavOverlay.tsx', import.meta.url), 'utf8');
   // 0.2.2 的 AppFrame 在窄屏（<768px，SIDEBAR_DRAWER_BREAKPOINT）自带抽屉：
   // frame 上带 data-sidebar-drawer，官方负责列宽、遮罩、外点关闭与焦点。
-  // 插件只保留「官方没有抽屉」的宽度段（768–1023px，官方那里是图标 rail）
-  // 和老版本宿主 —— 所有抽屉结构规则都门控在 :not([data-sidebar-drawer])。
+  // 插件只在「官方没有抽屉」的老版本宿主上补齐抽屉结构，所有抽屉结构规则
+  // 都门控在 :not([data-sidebar-drawer])；768–1023px 官方是图标 rail，插件不接管。
   assert.ok(
     /\[data-mobile-nav="frame"\]:not\(\[data-sidebar-drawer\]\)\s*\{[^}]*grid-template-columns/.test(css),
     '网格压缩必须门控在 :not([data-sidebar-drawer]) 上',
@@ -312,19 +312,26 @@ test('打包产物里带上抽屉规则的关键字', () => {
   }
 });
 
-test('手机端右边栏默认显示，设置关闭后隐藏稳定 header corner 入口', () => {
+test('右边栏交还官方：插件不再切换 header corner 入口', () => {
   const css = readFileSync(new URL('../client/mobile/mobile.css.ts', import.meta.url), 'utf8');
   const apply = readFileSync(new URL('../client/mobile/mobile-apply.tsx', import.meta.url), 'utf8');
+  const api = readFileSync(new URL('../client/api.js', import.meta.url), 'utf8');
   assert.ok(
-    css.includes('body[data-dsh-pocket-mobile-rightbar="off"] [data-conversation-header-corner]'),
-    '仅在用户关闭设置时隐藏官方右栏入口',
+    !css.includes('data-dsh-pocket-mobile-rightbar'),
+    '不再按设置隐藏官方右栏入口：窄屏全屏由官方 SidebarRight 自己决定',
   );
   assert.ok(
-    !css.includes('[data-phase] header > :first-child > :last-child'),
-    '不能依赖标题栏子元素顺序隐藏右栏入口',
+    !apply.includes('MOBILE_RIGHTBAR') && !apply.includes('mobileRightbar'),
+    '移动端启动不再读取右栏设置',
   );
-  assert.ok(apply.includes('POCKET_ENDPOINTS.status'), '移动端启动时读取持久化设置');
-  assert.ok(apply.includes('MOBILE_RIGHTBAR_EVENT'), '设置切换后立即同步右栏入口');
+  assert.ok(
+    !api.includes('mobileRightbar'),
+    'RPC 不再暴露 mobile.rightbar.setEnabled',
+  );
+  assert.ok(
+    /\[data-mobile-nav="files"\]\s*\{[^}]*right:\s*44px\s*!/.test(css),
+    '文件按钮固定在官方 header corner 左侧',
+  );
 });
 
 test('会话头部放不下时横向滚动，而不是让 chip 互相压盖', () => {

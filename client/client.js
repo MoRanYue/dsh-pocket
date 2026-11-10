@@ -51,8 +51,6 @@ var import_react2 = require("react");
 
 // client/api.js
 var POCKET_RPC_CHANNEL = "/dsh-pocket";
-var MOBILE_RIGHTBAR_ATTRIBUTE = "data-dsh-pocket-mobile-rightbar";
-var MOBILE_RIGHTBAR_EVENT = "dsh-pocket:mobile-rightbar";
 var POCKET_ENDPOINTS = Object.freeze({
   status: "pocket.status",
   tunnelStart: "tunnel.start",
@@ -65,7 +63,6 @@ var POCKET_ENDPOINTS = Object.freeze({
   lanAuthSetEnabled: "lanAuth.setEnabled",
   lanSetOverride: "lan.setOverride",
   lanSetEnabled: "lan.setEnabled",
-  mobileRightbarSetEnabled: "mobile.rightbar.setEnabled",
   pinSetCustom: "pin.setCustom",
   pocketReset: "pocket.reset"
 });
@@ -248,7 +245,7 @@ function isOverlayTap(target) {
 
 // client/mobile/MobileNavOverlay.tsx
 var icons2 = resolveMobileIcons(primitives2);
-var MOBILE_QUERY = "(max-width: 1023px)";
+var MOBILE_QUERY = "(max-width: 767px)";
 var OFFICIAL_DRAWER_ATTR = "data-sidebar-drawer";
 function useMobile() {
   const [mobile, setMobile] = (0, import_react.useState)(() => window.matchMedia(MOBILE_QUERY).matches);
@@ -642,7 +639,7 @@ var MOBILE_CSS = `
 
 /* ---------- mobile-only layout ---------- */
 
-@media (max-width: 1023px) {
+@media (max-width: 767px) {
   /* --- Phone chrome ---
      The system status bar stays visible (no fullscreen). Two adjustments
      make it behave:
@@ -669,8 +666,7 @@ var MOBILE_CSS = `
      DSH 0.2.2 \u8D77\u7A84\u5C4F\uFF08<768px\uFF09\u5B98\u65B9\u81EA\u5E26\u62BD\u5C49\uFF0Cframe \u5728 drawer \u6A21\u5F0F\u5E26
      data-sidebar-drawer\uFF0C\u5217\u5BBD\u4E0E\u62BD\u5C49\u5B9A\u4F4D\u90FD\u7531\u5B98\u65B9\u7B97\u597D\u3002\u63D2\u4EF6\u4E0D\u518D\u91CD\u753B\u5B83\uFF1A
      \u4E0B\u9762\u6240\u6709 drawer \u7ED3\u6784\u89C4\u5219\u90FD\u6302\u5728 :not([data-sidebar-drawer]) \u4E0A\uFF0C\u53EA\u5728
-     \u5B98\u65B9\u6CA1\u6709\u62BD\u5C49\u7684\u5BBD\u5EA6\u6BB5\uFF08768\u20131023px\uFF0C\u5B98\u65B9\u7ED9\u7684\u662F\u56FE\u6807 rail\uFF09\u548C\u8001\u7248\u672C\u5BBF\u4E3B
-     \u751F\u6548 \u2014\u2014 \u90A3\u6BB5\u4ECD\u7531\u63D2\u4EF6\u628A rail \u6362\u6210\u62BD\u5C49\u3002 */
+     \u6CA1\u6709\u5B98\u65B9\u62BD\u5C49\u7684\u8001\u7248\u672C\u5BBF\u4E3B\u751F\u6548\u3002768\u20131023px \u7684\u56FE\u6807 rail \u4E5F\u4EA4\u8FD8\u5B98\u65B9\u3002 */
   [data-mobile-nav="frame"] {
     position: relative !important;
     padding-top: env(safe-area-inset-top, 0px) !important;
@@ -725,7 +721,7 @@ var MOBILE_CSS = `
      real sidebar column stayed in the grid. Target the official class suffix
      instead (gURaQa_sidebarCol; the hash prefix changes every build).
      \u5B98\u65B9 drawer \u6A21\u5F0F\uFF08<768px\uFF09\u6574\u6BB5\u8DF3\u8FC7\uFF1A\u90A3\u4E00\u6BB5\u7531\u4E0A\u9762\u7684 :not() \u95E8\u63A7\u6321\u6389\uFF0C\u5B98\u65B9
-     \u81EA\u5DF1\u5C31\u662F\u62BD\u5C49\uFF1B\u8FD9\u91CC\u7684\u6309\u7C7B\u540D\u5B9A\u4F4D\u53EA\u670D\u52A1 768\u20131023px \u7684 rail\u2192\u62BD\u5C49\u6539\u5199\u3002 */
+     \u81EA\u5DF1\u5C31\u662F\u62BD\u5C49\uFF1B\u8FD9\u91CC\u7684\u6309\u7C7B\u540D\u5B9A\u4F4D\u53EA\u670D\u52A1\u6CA1\u6709\u5B98\u65B9\u62BD\u5C49\u7684\u8001\u7248\u672C\u5BBF\u4E3B\u3002 */
   [data-mobile-nav="frame"]:not([data-sidebar-drawer]) > [class*="_sidebarCol"] {
     position: absolute !important;
     inset: 0 auto 0 0 !important;
@@ -971,8 +967,8 @@ var MOBILE_CSS = `
   }
 
   /* --- Session header on mobile ---
-     Layout goal: [toggle] [session title] [mode badge] in a row. The optional
-     rightbar entry uses the shell's stable header-corner hook. */
+     Layout goal: [toggle] [session title] [mode badge] in a row; the shell's
+     own header-corner control keeps the far-right lane. */
   [data-phase] header {
     padding: 8px 12px 0 !important;
   }
@@ -1042,23 +1038,15 @@ var MOBILE_CSS = `
   [data-mobile-nav="frame"]:has([data-sidebar-opener]) [data-mobile-nav="fab"] {
     display: none !important;
   }
-  /* The Files action sits at the FAR RIGHT of the header so it reads as a
-     distinct control from the directory toggle on the left (which opens
-     the history sidebar). */
+  /* The Files action sits at the far right of the header, left of the shell's
+     own corner control ([data-conversation-header-corner]: the right-sidebar
+     expand button DSH >= 0.2.2 mounts there), so the two never overlap. */
   [data-mobile-nav="files"] {
     position: absolute !important;
     left: auto !important;
-    right: 8px !important;
+    right: 44px !important;
     top: 12px !important;
     z-index: 2 !important;
-  }
-  /* The native rightbar entry is visible by default. Users who prefer the
-     compact header can turn it off in Pocket settings. */
-  body[data-dsh-pocket-mobile-rightbar="off"] [data-conversation-header-corner] {
-    display: none !important;
-  }
-  body:not([data-dsh-pocket-mobile-rightbar="off"]) [data-mobile-nav="files"] {
-    right: 44px !important;
   }
 
   /* --- Settings dialog on mobile ---
@@ -1446,9 +1434,11 @@ var MOBILE_CSS = `
   }
 }
 
-/* ---------- desktop: the mobile controls must never appear ---------- */
+/* ---------- at and above the official drawer breakpoint (768px): the
+   mobile controls must never appear \u2014 that width range is official rail /
+   desktop territory, handled entirely by DSH. ---------- */
 
-@media (min-width: 1024px) {
+@media (min-width: 768px) {
   [data-mobile-nav="toggle"],
   [data-mobile-nav="files"],
   [data-mobile-nav="fab"],
@@ -1506,7 +1496,7 @@ function persistLayoutFromUrl(urlValue) {
 // client/mobile/mobile-apply.tsx
 function mobileApply(ctx) {
   const urlValue = new URL(window.location.href).searchParams.get("dsh-layout") ?? "";
-  const narrowMQ = window.matchMedia("(max-width: 1023px)");
+  const narrowMQ = window.matchMedia("(max-width: 767px)");
   const stored = persistLayoutFromUrl(urlValue);
   const layout = resolveLayout({ urlValue, stored, narrowMatch: narrowMQ.matches });
   document.body?.setAttribute("data-dsh-pocket-layout", layout);
@@ -1518,30 +1508,6 @@ function mobileApply(ctx) {
     } };
   }
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), "dsh-mobile-nav: dictionaries");
-  ctx.effect(() => {
-    let active = true;
-    const applyEnabled = (enabled) => {
-      document.body?.setAttribute(MOBILE_RIGHTBAR_ATTRIBUTE, enabled ? "on" : "off");
-    };
-    const onChange = (event) => {
-      applyEnabled(event.detail?.enabled === true);
-    };
-    const load = async () => {
-      try {
-        const result = await ctx.connection.rpc.call(POCKET_RPC_CHANNEL, POCKET_ENDPOINTS.status, {});
-        if (active) applyEnabled(result?.ok === true ? result.value?.mobileRightbarEnabled !== false : true);
-      } catch {
-        if (active) applyEnabled(true);
-      }
-    };
-    window.addEventListener(MOBILE_RIGHTBAR_EVENT, onChange);
-    void load();
-    return () => {
-      active = false;
-      window.removeEventListener(MOBILE_RIGHTBAR_EVENT, onChange);
-      document.body?.removeAttribute(MOBILE_RIGHTBAR_ATTRIBUTE);
-    };
-  }, "dsh-mobile-nav: optional right sidebar");
   ctx.effect(() => {
     const tag = document.createElement("style");
     tag.dataset.plugin = "@dsh-external/dsh-mobile-nav";
@@ -1798,8 +1764,6 @@ var zh2 = {
   "pinCustomHint": "\u81EA\u5B9A\u4E49\u540E\u5F00\u542F\u516C\u7F51\u4E0D\u518D\u81EA\u52A8\u6362\u65B0",
   "lanPinOff": "\u{1F513} \u5BC6\u7801\u5DF2\u5173\u95ED\uFF1A\u626B\u7801\u76F4\u8FDE\uFF0C\u65E0\u9700\u5BC6\u7801\uFF08\u4EC5\u540C\u4E00\u5C40\u57DF\u7F51\u8BBE\u5907\u53EF\u8BBF\u95EE\uFF1B\u516C\u7F51\u4ECD\u8981\u5BC6\u7801\uFF09",
   "lanStarting": "\u4EE3\u7406\u672A\u5C31\u7EEA\u2026",
-  "mobileRightbar": "\u624B\u673A\u7AEF\u53F3\u8FB9\u680F",
-  "mobileRightbarHint": "\u663E\u793A\u539F\u751F\u53F3\u8FB9\u680F\u5165\u53E3\uFF1B\u666E\u901A\u624B\u673A\u53EF\u6309\u9700\u5173\u95ED\uFF0C\u6298\u53E0\u5C4F\u5C55\u5F00\u540E\u4F7F\u7528\u66F4\u65B9\u4FBF",
   "wanTitle": "\u{1F310} \u516C\u7F51\uFF08\u4EBA\u5728\u5916\u9762\uFF09",
   "wanHint": "\u4EFB\u4F55\u7F51\u7EDC\u626B\u7801\u5373\u7528\uFF08URL \u6BCF\u6B21\u91CD\u542F\u81EA\u52A8\u6362\u65B0\uFF09",
   "wanPin": "\u{1F510} \u8BBF\u95EE\u5BC6\u7801\uFF1A{pin}\uFF08\u6BCF\u6B21\u5F00\u542F\u516C\u7F51\u53D8\u65B0\uFF1B\u624B\u673A\u6253\u5F00\u94FE\u63A5\u9700\u8F93\u5165\u6B64\u5BC6\u7801\uFF09",
@@ -1896,8 +1860,6 @@ var en2 = {
   "pinCustomHint": "custom PINs are not rotated on tunnel start",
   "lanPinOff": "\u{1F513} PIN off \u2014 scan & go, no PIN (LAN devices only; public still requires PIN)",
   "lanStarting": "Proxy starting\u2026",
-  "mobileRightbar": "Mobile right sidebar",
-  "mobileRightbarHint": "Show the native right-sidebar entry; disable it for a compact phone header or keep it on for an unfolded display",
   "wanTitle": "\u{1F310} Anywhere (public)",
   "wanHint": "Scan from any network (the URL changes on every restart)",
   "wanPin": "\u{1F510} PIN: {pin} (changes each time the tunnel is enabled; required on the phone)",
@@ -1956,11 +1918,6 @@ var styles = {
   qr: { width: 220, height: 220, borderRadius: 10, border: "1px solid var(--dsw-alias-border-l2,#e5e7eb)", margin: "8px 0" },
   warn: { color: "var(--dsw-alias-state-warn-primary,#b45309)", fontSize: 12, lineHeight: 1.5 }
 };
-function applyMobileRightbarSetting(enabled) {
-  const on = enabled !== false;
-  document.body?.setAttribute(MOBILE_RIGHTBAR_ATTRIBUTE, on ? "on" : "off");
-  window.dispatchEvent(new CustomEvent(MOBILE_RIGHTBAR_EVENT, { detail: { enabled: on } }));
-}
 function PocketSettingsTab({ rpcCall, t }) {
   const [status, setStatus] = (0, import_react2.useState)(null);
   const [busy, setBusy] = (0, import_react2.useState)(false);
@@ -1984,7 +1941,6 @@ function PocketSettingsTab({ rpcCall, t }) {
     try {
       const s = await call(POCKET_ENDPOINTS.status, {});
       setStatus(s);
-      applyMobileRightbarSetting(s.mobileRightbarEnabled);
       setTunnelState(s.tunnelState ?? null);
       if (s.desktop) setIsDesktop(true);
       if (s.restartNotice) {
@@ -2133,7 +2089,6 @@ function PocketSettingsTab({ rpcCall, t }) {
     try {
       const next = await call(POCKET_ENDPOINTS.pocketReset, { confirm: true });
       setStatus(next);
-      applyMobileRightbarSetting(next.mobileRightbarEnabled);
       setTunnelCfg(null);
       setCustomPin(null);
       setAdvOpen(false);
@@ -2157,16 +2112,6 @@ function PocketSettingsTab({ rpcCall, t }) {
       const r = await call(POCKET_ENDPOINTS.lanAuthSetEnabled, { on });
       setStatus((s) => ({ ...s, lanAuthEnabled: r.lanAuthEnabled }));
     } catch {
-    }
-  };
-  const setMobileRightbar = async (on) => {
-    try {
-      const r = await call(POCKET_ENDPOINTS.mobileRightbarSetEnabled, { on });
-      const enabled = r.mobileRightbarEnabled === true;
-      setStatus((s) => ({ ...s, mobileRightbarEnabled: enabled }));
-      applyMobileRightbarSetting(enabled);
-    } catch (err) {
-      setError(err.message);
     }
   };
   const [lanToggleOpen, setLanToggleOpen] = (0, import_react2.useState)(null);
@@ -2512,15 +2457,6 @@ function PocketSettingsTab({ rpcCall, t }) {
           )
         ) : null
       ) : null
-    ),
-    (0, import_react2.createElement)(
-      "div",
-      { style: styles.block },
-      row(
-        t("mobileRightbar"),
-        Switch(status?.mobileRightbarEnabled !== false, () => setMobileRightbar(status?.mobileRightbarEnabled === false)),
-        (0, import_react2.createElement)("div", { style: { ...styles.muted, marginTop: 6 } }, t("mobileRightbarHint"))
-      )
     ),
     error ? (0, import_react2.createElement)("div", { style: { color: "var(--dsw-alias-state-error-primary,#dc2626)", fontSize: 12, marginTop: 8 } }, `\u274C ${errText(error)}`) : null,
     // 恢复出厂设置：设置出问题时的临时兜底（最底部，避免误触）

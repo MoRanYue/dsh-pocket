@@ -106,8 +106,8 @@ test('隐藏规则落在移动端媒体查询里，且外层条件在窄屏都�
   assert.ok(rule, '隐藏规则不存在，先看上一个用例')
   const conditions = rule.atStack.map((entry) => normalize(entry))
   assert.ok(
-    conditions.some((entry) => /max-width: 1023px/.test(entry)),
-    '隐藏规则必须落在 @media (max-width: 1023px) 内，当前外层是 ' + JSON.stringify(conditions),
+    conditions.some((entry) => /max-width: 767px/.test(entry)),
+    '隐藏规则必须落在 @media (max-width: 767px) 内，当前外层是 ' + JSON.stringify(conditions),
   )
   for (const condition of conditions) {
     assert.equal(
@@ -117,7 +117,7 @@ test('隐藏规则落在移动端媒体查询里，且外层条件在窄屏都�
     )
     const min = /min-width:\s*(\d+)px/.exec(condition)
     assert.equal(
-      min === null || Number(min[1]) <= 1023,
+      min === null || Number(min[1]) <= 767,
       true,
       '隐藏规则的外层媒体查询在窄屏不成立（' + condition + '），等于不生效',
     )
