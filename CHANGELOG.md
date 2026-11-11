@@ -1,3 +1,12 @@
+## [3.0.1](https://github.com/MoRanYue/dsh-pocket/compare/v3.0.0...v3.0.1) (2026-11-11)
+
+
+### Bug Fixes
+
+* **update:** 移除自更新检测、一键更新与自重启，安装/更新/重启交还插件管理器 ([ccbb1a2](https://github.com/MoRanYue/dsh-pocket/commit/ccbb1a2))
+
+  插件不再轮询 npm registry 检查新版本，设置页也不再提供「一键更新」「重启 dsh web」按钮；同时删除内部 RPC `pocket.version` / `pocket.update` / `pocket.restart`（仅插件自身前端使用，无外部调用方）、重启标记文件与 `lib/restart.js`。
+
 # [3.0.0](https://github.com/MoRanYue/dsh-pocket/compare/v2.12.0...v3.0.0) (2026-11-11)
 
 
