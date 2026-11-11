@@ -204,10 +204,16 @@ Such tools take over all traffic and often cut cloudflared's tunnel-edge connect
 ```sh
 npm install
 node client/build.mjs   # rebuild after editing client/
-npm test                # proxy / auth / compression / tunnel / service / RPC / settings (109 tests)
+npm test                # proxy / auth / compression / tunnel / service / RPC / settings (214 tests)
 ```
 
 **Want to try your changes locally without publishing?** Point the installed plugin at your local checkout with a symlink and restart dsh web. Full steps (including switching back to the npm release) are in [LOCAL-DEV.md](./LOCAL-DEV.md).
+
+### Releasing
+
+Run the `Release` workflow manually from the Actions page ([release.yml](./.github/workflows/release.yml)): semantic-release derives the version from the commits since the last release, writes the CHANGELOG, tags, and publishes to npm.
+
+Publishing uses npm trusted publishing (OIDC) — no `NPM_TOKEN` is stored in the repository or configured as a secret. Before the first run, register the trusted publisher in the npm package settings (Settings → Trusted Publisher): Owner `MoRanYue`, Repository `dsh-pocket`, Workflow `release.yml`.
 
 ## 🤝 Credits
 

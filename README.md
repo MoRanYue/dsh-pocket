@@ -211,10 +211,16 @@ npx @deepseek-ai/dsh web
 ```sh
 npm install
 node client/build.mjs   # 改 client/ 后重新打包
-npm test                # 代理 / 认证 / 压缩 / 隧道 / 服务 / RPC / 设置（109 测试）
+npm test                # 代理 / 认证 / 压缩 / 隧道 / 服务 / RPC / 设置（214 测试）
 ```
 
 **改完想在本机先试？** 不用发版：把插件换成指向本地仓库的软链，重启 dsh web 就是本地代码。完整步骤（含怎么换回 npm 官方版本）见 [LOCAL-DEV.md](./LOCAL-DEV.md)。
+
+### 发版
+
+在 GitHub Actions 页面手动跑 `Release` 工作流（[release.yml](./.github/workflows/release.yml)）：semantic-release 按上次发版以来的提交自动定版本号、写 CHANGELOG、打 tag 并发布到 npm。
+
+发布走 npm 的 trusted publishing（OIDC），仓库里不保存 `NPM_TOKEN`、也不需要配这个 secret。首次启用需在 npm 包的 Settings → Trusted Publisher 里登记：Owner `MoRanYue`、Repository `dsh-pocket`、Workflow `release.yml`。
 
 ## 🤝 致谢
 
