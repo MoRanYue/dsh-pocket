@@ -1,10 +1,10 @@
 {
-  "name": "dsh-pocket",
-  "description": "把 DeepSeek Harness 装进你的口袋：一个包、一个设置页，手机扫码即同步访问电脑上的 DSH（局域网 + 公网，实时同屏）。",
+  "name": "dsh-pocket-fork",
+  "description": "dsh-pocket 的 fork：把 DeepSeek Harness 装进你的口袋——一个包、一个设置页，手机扫码即同步访问电脑上的 DSH（局域网 + 公网，实时同屏）。",
   "type": "module",
   "main": "lib/index.js",
   "bin": {
-    "dsh-pocket": "bin/dsh-pocket.mjs"
+    "dsh-pocket-fork": "bin/dsh-pocket-fork.mjs"
   },
   "exports": {
     ".": {
@@ -52,7 +52,8 @@
     "mobile",
     "remote",
     "qr",
-    "tunnel"
+    "tunnel",
+    "fork"
   ],
   "dsh": {
     "bundle": {
@@ -71,15 +72,15 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/shaobeichen/dsh-pocket.git"
+    "url": "git+https://github.com/MoRanYue/dsh-pocket.git"
   },
   "bugs": {
-    "url": "https://github.com/shaobeichen/dsh-pocket/issues"
+    "url": "https://github.com/MoRanYue/dsh-pocket/issues"
   },
-  "homepage": "https://github.com/shaobeichen/dsh-pocket",
+  "homepage": "https://github.com/MoRanYue/dsh-pocket",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org/"
   },
-  "version": "2.12.0"
+  "version": "3.0.0"
 }

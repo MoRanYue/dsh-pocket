@@ -1,3 +1,21 @@
+# [3.0.0](https://github.com/MoRanYue/dsh-pocket/compare/v2.12.0...v3.0.0) (2026-11-11)
+
+
+### Features
+
+* **mobile:** 手机软键盘回车改为换行，发送交给发送键 ([37aaf71](https://github.com/MoRanYue/dsh-pocket/commit/37aaf71))
+
+
+### Bug Fixes
+
+* **lan:** 陈旧会话 cookie 不再把上游 401 原样甩给用户 ([942b78e](https://github.com/MoRanYue/dsh-pocket/commit/942b78e))
+
+
+### BREAKING CHANGES
+
+* 包名改为 `dsh-pocket-fork`，安装/更新命令随之变化（`dsh plugin --profile web add dsh-pocket-fork -w`）；数据目录仍是 `$DSH_HOME/dsh-pocket`，密码与隧道 Token 不受影响。
+* 移动端交还官方行为：不再重画官方抽屉/图标栏/设置页手机布局，移动端断点与官方一致（<768px）；右边栏开关移除；手机软键盘回车 = 换行。
+
 # [2.12.0](https://github.com/shaobeichen/dsh-pocket/compare/v2.11.0...v2.12.0) (2026-10-17)
 
 

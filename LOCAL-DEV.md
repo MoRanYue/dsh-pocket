@@ -9,16 +9,16 @@
 ## 一、建立软链（只需做一次）
 
 ```sh
-# 插件安装位置：$DSH_HOME/profiles/web/node_modules/dsh-pocket（默认 $DSH_HOME=~/.dsh）
+# 插件安装位置：$DSH_HOME/profiles/web/node_modules/dsh-pocket-fork（默认 $DSH_HOME=~/.dsh）
 # 若你改过 DSH_HOME，把下面的 ~/.dsh 换成实际路径
 cd ~/.dsh/profiles/web/node_modules
 
-rm dsh-pocket
-ln -s /你的/仓库/绝对路径/dsh-pocket dsh-pocket
+rm dsh-pocket-fork
+ln -s /你的/仓库/绝对路径/dsh-pocket dsh-pocket-fork
 
 # 确认
-ls -l dsh-pocket
-# dsh-pocket -> /你的/仓库/绝对路径/dsh-pocket
+ls -l dsh-pocket-fork
+# dsh-pocket-fork -> /你的/仓库/绝对路径/dsh-pocket
 ```
 
 桌面版 profile 同理，把路径里的 `web` 换成 `desktop` 即可。
@@ -65,7 +65,7 @@ curl -s -o /dev/null -w "3081:%{http_code}\n" http://127.0.0.1:3081/   # dsh-poc
 
 ```sh
 # 页面正在引用的版本
-REV=$(curl -s http://127.0.0.1:3080/ | grep -o 'dsh-pocket/client.js?rev=[a-f0-9]*' | head -1 | cut -d= -f2)
+REV=$(curl -s http://127.0.0.1:3080/ | grep -o 'dsh-pocket-fork/client.js?rev=[a-f0-9]*' | head -1 | cut -d= -f2)
 echo $REV
 
 # 本地打包产物的 sha1 前 12 位
@@ -77,14 +77,14 @@ shasum -a 1 client/client.js | cut -c1-12
 ## 四、换回 npm 官方版本
 
 ```sh
-dsh plugin --profile web add dsh-pocket -w
+dsh plugin --profile web add dsh-pocket-fork -w
 ```
 
 重装会把软链换回 pnpm 的正式安装：
 
 ```sh
-ls -l ~/.dsh/profiles/web/node_modules/dsh-pocket
-# dsh-pocket -> .pnpm/dsh-pocket@<版本>/node_modules/dsh-pocket
+ls -l ~/.dsh/profiles/web/node_modules/dsh-pocket-fork
+# dsh-pocket-fork -> .pnpm/dsh-pocket-fork@<版本>/node_modules/dsh-pocket-fork
 ```
 
 之后重启 dsh web 即可。
@@ -102,6 +102,6 @@ ls -l ~/.dsh/profiles/web/node_modules/dsh-pocket
 
 **手机页面没变化**：多半是忘了 `node client/build.mjs`，或 dsh web 没重启成功（看 `/tmp/dsh-web-dev.log`）。
 
-**代理端口 3081 起不来**：插件没加载成功。检查软链路径是否正确、仓库依赖是否装好；也可以 `curl -s http://127.0.0.1:3080/` 看返回的 HTML 里有没有 `dsh-pocket/client.js`。
+**代理端口 3081 起不来**：插件没加载成功。检查软链路径是否正确、仓库依赖是否装好；也可以 `curl -s http://127.0.0.1:3080/` 看返回的 HTML 里有没有 `dsh-pocket-fork/client.js`。
 
 **端口被占**：`lsof -ti :3080` 或 `lsof -ti :3081` 查占用进程；dsh-pocket 的代理在 3081 被占时会自动顺延到下一个端口。

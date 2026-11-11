@@ -18,11 +18,11 @@ import {
   buildAuth,
   entryUrl,
   MIN_PIN_LENGTH,
-} from '../bin/dsh-pocket.mjs';
+} from '../bin/dsh-pocket-fork.mjs';
 
 const execFileAsync = promisify(execFile);
 const here = dirname(fileURLToPath(import.meta.url));
-const cliPath = join(here, '..', 'bin', 'dsh-pocket.mjs');
+const cliPath = join(here, '..', 'bin', 'dsh-pocket-fork.mjs');
 
 test('issue #90：CLI 默认必须有访问密码，且是 CSPRNG 生成的 8 位数字', () => {
   const { pin, source, error } = resolvePin(parseArgs([]), {});
