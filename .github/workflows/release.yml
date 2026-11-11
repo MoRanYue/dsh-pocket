@@ -2,29 +2,40 @@ name: Release
 
 # 手动触发（Actions 页面 → Release → Run workflow）：
 # push 只更新代码，本地测过没问题后再来这里手动发版（semantic-release
-# 按自上次发版以来的提交自动定版本号，无需手动填）
+# 按自上次发版以来的提交自动定版本号，无需手动填）。
+#
+# 发布走 npm 的 trusted publishing（OIDC）：工作流里不再保存 NPM_TOKEN，
+# 由 GitHub 签发短期 OIDC token 换取 npm 发布权限。前置条件：
+#   1. npm 包设置 → Trusted Publisher 里登记本仓库
+#      （Owner: MoRanYue，Repository: dsh-pocket，Workflow: release.yml）
+#   2. 工作流授予 id-token: write（见下方 permissions）
 on:
   workflow_dispatch:
 
 permissions:
-  contents: write
-  issues: write
-  pull-requests: write
+  contents: read
 
 jobs:
   release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # 推送 release commit / tag、创建 GitHub Release
+      issues: write # 在相关 issue 上评论
+      pull-requests: write # 在相关 PR 上评论
+      id-token: write # OIDC：npm trusted publishing + 自动生成 provenance
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 0 # semantic-release 需要完整提交历史和 tag
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
+      # trusted publishing 需要较新的 npm（>= 11.5.1），Node 自带的可能偏旧
+      - name: Use latest npm
+        run: npm install -g npm@latest
       - run: npm ci
       - run: npm test
       - name: Publish release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npm run release
