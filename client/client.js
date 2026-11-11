@@ -56,9 +56,6 @@ var POCKET_ENDPOINTS = Object.freeze({
   tunnelStart: "tunnel.start",
   tunnelStop: "tunnel.stop",
   tunnelSetConfig: "tunnel.setConfig",
-  version: "pocket.version",
-  update: "pocket.update",
-  restart: "pocket.restart",
   lanTokenRefresh: "token.lanRefresh",
   lanAuthSetEnabled: "lanAuth.setEnabled",
   lanSetOverride: "lan.setOverride",
@@ -66,35 +63,6 @@ var POCKET_ENDPOINTS = Object.freeze({
   pinSetCustom: "pin.setCustom",
   pocketReset: "pocket.reset"
 });
-function compareVersions(a, b) {
-  const pa = String(a).replace(/^[vV]/, "").split(".");
-  const pb = String(b).replace(/^[vV]/, "").split(".");
-  for (let i = 0; i < 3; i++) {
-    const x = parseInt(pa[i], 10) || 0;
-    const y = parseInt(pb[i], 10) || 0;
-    if (x !== y) return x - y;
-  }
-  const aPre = String(a).replace(/^[vV]/, "").match(/-.*$/)?.[0] ?? "";
-  const bPre = String(b).replace(/^[vV]/, "").match(/-.*$/)?.[0] ?? "";
-  if (!aPre && !bPre) return 0;
-  if (!aPre) return 1;
-  if (!bPre) return -1;
-  const aParts = aPre.slice(1).split(".");
-  const bParts = bPre.slice(1).split(".");
-  const len = Math.max(aParts.length, bParts.length);
-  for (let i = 0; i < len; i++) {
-    const ax = aParts[i] ?? "";
-    const bx = bParts[i] ?? "";
-    if (ax === bx) continue;
-    const aNum = /^\d+$/.test(ax);
-    const bNum = /^\d+$/.test(bx);
-    if (aNum && bNum) return Number(ax) - Number(bx);
-    if (aNum) return 1;
-    if (bNum) return -1;
-    return ax < bx ? -1 : 1;
-  }
-  return 0;
-}
 function redactStatus(s) {
   return {
     proxyRunning: s?.proxyRunning === true,
@@ -1778,24 +1746,7 @@ var zh2 = {
   "developer": "\u5F00\u53D1\u8005\uFF1A\u7A0B\u5E8F\u5458\u5C11\u5317\u6668",
   "starAsk": "\u2B50 \u987A\u624B\u7559\u9897 Star\uFF0C\u4F5C\u8005\u80FD\u9AD8\u5174\u4E00\u6574\u5929",
   "starCta": "\u884C\uFF0C\u7ED9\u4F60\u4E00\u9897 Star",
-  "restarted": "\u{1F504} \u5DF2\u91CD\u542F",
   "ok": "\u77E5\u9053\u4E86",
-  "bgHint": "\u8FDB\u7A0B\u5728\u540E\u53F0\u8FD0\u884C\uFF08\u4E0D\u6302\u7EC8\u7AEF\uFF09\u3002\u5982\u9700\u505C\u6B62\uFF1A{cmd}",
-  "updatedRestart": "\u2705 \u5DF2\u66F4\u65B0 v{ver}\uFF0C\u91CD\u542F\u751F\u6548",
-  "updateAutoRestarting": "\u2705 \u5DF2\u66F4\u65B0 v{ver}\uFF0C\u6B63\u5728\u81EA\u52A8\u91CD\u542F\u2026",
-  "updatedOk": "\u2705 \u5DF2\u66F4\u65B0 v{ver}",
-  "updateAvailable": "\u{1F4E6} \u65B0\u7248\u672C v{ver}",
-  "updating": "\u66F4\u65B0\u4E2D\u2026",
-  "updateTo": "\u66F4\u65B0\u5230 v{ver}",
-  "restartingNow": "\u6B63\u5728\u91CD\u542F\u751F\u6548\u2026",
-  "restarting": "\u91CD\u542F\u4E2D\u2026",
-  "restartNow": "\u{1F504} \u91CD\u542F dsh web \u751F\u6548",
-  "updatingDetail": "\u23F3 \u66F4\u65B0\u4E2D\uFF08\u901A\u5E38 1-2 \u5206\u949F\uFF09\xB7 \u5DF2\u7B49\u5F85 {s} \u79D2",
-  "restartingDetail": "\u23F3 \u6B63\u5728\u91CD\u542F\u751F\u6548\uFF08\u901A\u5E38 10-30 \u79D2\uFF09\xB7 \u5DF2\u7B49\u5F85 {s} \u79D2",
-  "updatedAutoDetail": "\u2705 \u5DF2\u66F4\u65B0\uFF0C\u6B63\u5728\u81EA\u52A8\u91CD\u542F\u751F\u6548\uFF0C\u8BF7\u7A0D\u5019\u5237\u65B0",
-  "updatedRestartDetail": "\u2705 \u5DF2\u66F4\u65B0\uFF0C\u91CD\u542F dsh web \u751F\u6548",
-  "updateFailed": "\u274C \u5931\u8D25\uFF1A{err}\uFF08\u624B\u52A8\u66F4\u65B0\uFF1Adsh plugin --profile web update dsh-pocket-fork --latest -w\uFF09",
-  "versionRange": "\u5F53\u524D v{cur} \u2192 \u6700\u65B0 v{latest}",
   "wanAccess": "\u516C\u7F51\u8BBF\u95EE",
   "pinLabel": "\u8BBF\u95EE\u5BC6\u7801",
   "modeLabel": "\u5730\u5740\u6A21\u5F0F",
@@ -1805,7 +1756,7 @@ var zh2 = {
   "resetGo": "\u6062\u590D",
   "resetIntro": "\u8BBE\u7F6E\u641E\u51FA\u95EE\u9898\u65F6\u7684\u4E34\u65F6\u515C\u5E95\uFF1A\u6E05\u7A7A\u672C\u673A\u914D\u7F6E\u5E76\u91CD\u8BBE\u968F\u673A\u5BC6\u7801\uFF08DSH \u7684\u4F1A\u8BDD\u3001\u6A21\u578B\u3001\u63D2\u4EF6\u914D\u7F6E\u4E0D\u53D7\u5F71\u54CD\uFF09",
   "resetTitle": "\u26A0\uFE0F \u786E\u8BA4\u6062\u590D\u51FA\u5382\u8BBE\u7F6E\uFF1F",
-  "resetBody": "\u5C06\u6E05\u7A7A\u5E76\u6062\u590D\u9ED8\u8BA4\uFF1A\n\u2460 \u5F00\u5173\uFF1A\u5C40\u57DF\u7F51\u8BBF\u95EE=\u5F00\u3001\u8BBF\u95EE\u5BC6\u7801=\u5F00\u3001\u624B\u673A\u7AEF\u53F3\u8FB9\u680F=\u5F00\u3001\u5C40\u57DF\u7F51\u5730\u5740=\u81EA\u52A8\n\u2461 \u516C\u7F51\uFF1A\u6A21\u5F0F\u56DE\u5230\u968F\u673A\u57DF\u540D\uFF0C\u6E05\u7A7A Tunnel Token \u4E0E\u56FA\u5B9A\u57DF\u540D\uFF0C\u5E76\u5173\u95ED\u6B63\u5728\u8FD0\u884C\u7684\u516C\u7F51\n\u2462 \u5BC6\u7801\uFF1A\u516C\u7F51\u548C\u5C40\u57DF\u7F51\u90FD\u6362\u6210\u65B0\u7684\u968F\u673A 8 \u4F4D\u5BC6\u7801\uFF08\u65E7\u5BC6\u7801\u7ACB\u5373\u4F5C\u5E9F\uFF0C\u624B\u673A\u9700\u91CD\u65B0\u8F93\u5165\uFF09\n\nDSH \u81EA\u8EAB\u7684\u4F1A\u8BDD\u3001\u6A21\u578B\u3001\u63D2\u4EF6\u914D\u7F6E\u4E0D\u53D7\u5F71\u54CD\uFF1B\u6B64\u64CD\u4F5C\u4E0D\u53EF\u64A4\u9500\u3002",
+  "resetBody": "\u5C06\u6E05\u7A7A\u5E76\u6062\u590D\u9ED8\u8BA4\uFF1A\n\u2460 \u5F00\u5173\uFF1A\u5C40\u57DF\u7F51\u8BBF\u95EE=\u5F00\u3001\u8BBF\u95EE\u5BC6\u7801=\u5F00\u3001\u5C40\u57DF\u7F51\u5730\u5740=\u81EA\u52A8\n\u2461 \u516C\u7F51\uFF1A\u6A21\u5F0F\u56DE\u5230\u968F\u673A\u57DF\u540D\uFF0C\u6E05\u7A7A Tunnel Token \u4E0E\u56FA\u5B9A\u57DF\u540D\uFF0C\u5E76\u5173\u95ED\u6B63\u5728\u8FD0\u884C\u7684\u516C\u7F51\n\u2462 \u5BC6\u7801\uFF1A\u516C\u7F51\u548C\u5C40\u57DF\u7F51\u90FD\u6362\u6210\u65B0\u7684\u968F\u673A 8 \u4F4D\u5BC6\u7801\uFF08\u65E7\u5BC6\u7801\u7ACB\u5373\u4F5C\u5E9F\uFF0C\u624B\u673A\u9700\u91CD\u65B0\u8F93\u5165\uFF09\n\nDSH \u81EA\u8EAB\u7684\u4F1A\u8BDD\u3001\u6A21\u578B\u3001\u63D2\u4EF6\u914D\u7F6E\u4E0D\u53D7\u5F71\u54CD\uFF1B\u6B64\u64CD\u4F5C\u4E0D\u53EF\u64A4\u9500\u3002",
   "resetConfirm": "\u786E\u8BA4\u6062\u590D",
   "resetDone": "\u2705 \u5DF2\u6062\u590D\u51FA\u5382\u8BBE\u7F6E\uFF1A\u8BBE\u7F6E\u5DF2\u6E05\u7A7A\uFF0C\u5BC6\u7801\u5DF2\u6362\u65B0\uFF08\u624B\u673A\u9700\u91CD\u65B0\u8F93\u5165\uFF09",
   "resetFailed": "\u274C \u6062\u590D\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5",
@@ -1874,24 +1825,7 @@ var en2 = {
   "developer": "Developer: \u5C11\u5317\u6668 (shaobeichen)",
   "starAsk": "\u2B50 Drop a Star if it helped \u2014 it makes the author\u2019s day",
   "starCta": "\u2605 Give a Star",
-  "restarted": "\u{1F504} Restarted",
   "ok": "Got it",
-  "bgHint": "Running in the background (not attached to a terminal). To stop: {cmd}",
-  "updatedRestart": "\u2705 Updated to v{ver} \u2014 restart to apply",
-  "updateAutoRestarting": "\u2705 Updated to v{ver} \u2014 auto-restarting\u2026",
-  "updatedOk": "\u2705 Updated to v{ver}",
-  "updateAvailable": "\u{1F4E6} Update available: v{ver}",
-  "updating": "Updating\u2026",
-  "updateTo": "Update to v{ver}",
-  "restartingNow": "Restarting to apply\u2026",
-  "restarting": "Restarting\u2026",
-  "restartNow": "\u{1F504} Restart dsh web now",
-  "updatingDetail": "\u23F3 Updating (usually 1-2 min) \xB7 {s}s elapsed",
-  "restartingDetail": "\u23F3 Restarting to apply (usually 10-30s) \xB7 {s}s elapsed",
-  "updatedAutoDetail": "\u2705 Updated \u2014 auto-restarting in progress, refresh shortly",
-  "updatedRestartDetail": "\u2705 Updated \u2014 restart dsh web to apply",
-  "updateFailed": "\u274C Failed: {err} (manual update: dsh plugin --profile web update dsh-pocket-fork --latest -w)",
-  "versionRange": "Current v{cur} \u2192 latest v{latest}",
   "wanAccess": "Public access",
   "pinLabel": "Access PIN",
   "modeLabel": "Address mode",
@@ -1901,7 +1835,7 @@ var en2 = {
   "resetGo": "Reset",
   "resetIntro": "Temporary fallback when settings break: clear local config and re-roll random PINs (DSH sessions, models and plugin config are untouched)",
   "resetTitle": "\u26A0\uFE0F Confirm factory reset?",
-  "resetBody": "This clears and restores defaults:\n\u2460 Switches: LAN access on, access PIN on, mobile right sidebar on, LAN address auto\n\u2461 Public: mode back to random URL, Tunnel Token and fixed domain cleared, and any running tunnel is stopped\n\u2462 PINs: both public and LAN become new random 8-character PINs (old ones stop working; the phone must re-enter)\n\nYour DSH sessions, models and plugin config are untouched. This cannot be undone.",
+  "resetBody": "This clears and restores defaults:\n\u2460 Switches: LAN access on, access PIN on, LAN address auto\n\u2461 Public: mode back to random URL, Tunnel Token and fixed domain cleared, and any running tunnel is stopped\n\u2462 PINs: both public and LAN become new random 8-character PINs (old ones stop working; the phone must re-enter)\n\nYour DSH sessions, models and plugin config are untouched. This cannot be undone.",
   "resetConfirm": "Reset",
   "resetDone": "\u2705 Factory reset done: settings cleared and PINs re-rolled (re-enter the PIN on your phone)",
   "resetFailed": "\u274C Reset failed \u2014 please retry",
@@ -1993,8 +1927,6 @@ function PocketSettingsTab({ rpcCall, t }) {
   const [busy, setBusy] = (0, import_react2.useState)(false);
   const [error, setError] = (0, import_react2.useState)(null);
   const [tunnelState, setTunnelState] = (0, import_react2.useState)(null);
-  const [restartNotice, setRestartNotice] = (0, import_react2.useState)(false);
-  const [updateInfo, setUpdateInfo] = (0, import_react2.useState)(null);
   const [isDesktop, setIsDesktop] = (0, import_react2.useState)(false);
   const [now, setNow] = (0, import_react2.useState)(Date.now());
   (0, import_react2.useEffect)(() => {
@@ -2013,19 +1945,6 @@ function PocketSettingsTab({ rpcCall, t }) {
       setStatus(s);
       setTunnelState(s.tunnelState ?? null);
       if (s.desktop) setIsDesktop(true);
-      if (s.restartNotice) {
-        setRestartNotice(true);
-        setUpdateInfo(null);
-        if (!sessionStorage.getItem("dshp-auto-reloaded")) {
-          sessionStorage.setItem("dshp-auto-reloaded", "1");
-          setTimeout(() => {
-            try {
-              location.reload();
-            } catch {
-            }
-          }, 2e3);
-        }
-      }
     } catch {
     }
   };
@@ -2034,68 +1953,6 @@ function PocketSettingsTab({ rpcCall, t }) {
     const t2 = setInterval(load, 3e3);
     return () => clearInterval(t2);
   }, []);
-  (0, import_react2.useEffect)(() => {
-    try {
-      sessionStorage.removeItem("dshp-auto-reloaded");
-    } catch {
-    }
-  }, []);
-  (0, import_react2.useEffect)(() => {
-    if (isDesktop) return;
-    let alive = true;
-    const check = async () => {
-      try {
-        const v = await call(POCKET_ENDPOINTS.version, {});
-        const meta = await (await fetch("https://registry.npmjs.org/dsh-pocket/latest", { cache: "no-store" })).json();
-        if (!alive) return;
-        const latest = typeof meta?.version === "string" ? meta.version : null;
-        if (latest && v.current && compareVersions(latest, v.current) > 0) {
-          setUpdateInfo({ current: v.current, latest, updating: false, result: null });
-        } else if (v.current && v.loaded && compareVersions(v.current, v.loaded) > 0) {
-          setUpdateInfo({ current: v.current, latest: v.current, updating: false, result: "ok", updated: true });
-        }
-      } catch {
-      }
-    };
-    check();
-    const t2 = setInterval(check, 5 * 60 * 1e3);
-    return () => {
-      alive = false;
-      clearInterval(t2);
-    };
-  }, [isDesktop]);
-  const restartPocket = async () => {
-    setUpdateInfo((u) => ({ ...u, restarting: true, startedAt: Date.now() }));
-    try {
-      await Promise.race([
-        call(POCKET_ENDPOINTS.restart, {}),
-        new Promise((_, rej) => setTimeout(() => rej(new Error("restart requested (no reply within 3s)")), 3e3))
-      ]);
-      setUpdateInfo((u) => ({ ...u, restarting: true, result: "ok" }));
-    } catch (err) {
-      const msg = String(err?.message ?? "");
-      if (/connection|socket|fetch|network|abort|cancelled|ECONN|disconnect|closed|timeout/i.test(msg)) {
-        setUpdateInfo((u) => ({ ...u, restarting: true, result: "ok" }));
-        return;
-      }
-      setUpdateInfo((u) => ({ ...u, restarting: false, result: "fail", output: err.message }));
-    }
-  };
-  const runUpdate = async () => {
-    setUpdateInfo((u) => ({ ...u, updating: true, result: null, startedAt: Date.now() }));
-    try {
-      const r = await call(POCKET_ENDPOINTS.update, {});
-      setUpdateInfo((u) => ({
-        ...u,
-        updating: false,
-        result: r.ok ? "ok" : "fail",
-        autoRestart: r.autoRestart === true,
-        output: r.output ?? r.error
-      }));
-    } catch (err) {
-      setUpdateInfo((u) => ({ ...u, updating: false, result: "fail", output: err.message }));
-    }
-  };
   const [disclaimerOpen, setDisclaimerOpen] = (0, import_react2.useState)(false);
   const [disclaimerChecked, setDisclaimerChecked] = (0, import_react2.useState)(false);
   const doStartTunnel = async () => {
@@ -2323,40 +2180,6 @@ function PocketSettingsTab({ rpcCall, t }) {
         )
       )
     ),
-    // 桌面端不显示更新/重启横幅（更新由 DSH Desktop 管理），也不需要额外提示
-    // 重启后提示（进程在后台运行，停止方法）——左侧蓝色色条（桌面端不会触发本插件的自重启）
-    !isDesktop && restartNotice ? (0, import_react2.createElement)(
-      "div",
-      { style: { ...styles.block, borderLeft: "4px solid var(--dsw-alias-brand-primary,#4f6ef7)", borderRadius: 8, background: "var(--dsw-alias-bg-layer-2,#f3f4f6)", padding: "10px 12px" } },
-      (0, import_react2.createElement)(
-        "div",
-        { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 } },
-        (0, import_react2.createElement)("div", { style: { fontWeight: 600, fontSize: 13 } }, t("restarted")),
-        (0, import_react2.createElement)("button", { style: styles.btn, onClick: () => setRestartNotice(false) }, t("ok"))
-      ),
-      (0, import_react2.createElement)("div", { style: styles.muted, marginTop: 4, wordBreak: "break-all" }, fmt(t, "bgHint", { cmd: status?.killHint ?? `lsof -ti :${status?.dshPort ?? 3080} | xargs kill -9` }))
-    ) : null,
-    // 更新提示——左侧黄色色条（提示有新版本）；单状态：有更新/更新中/已更新自动重启，不并存
-    // 桌面端不渲染（更新由 DSH Desktop 管理）
-    !isDesktop && updateInfo ? (0, import_react2.createElement)(
-      "div",
-      { style: { ...styles.block, borderLeft: "4px solid var(--dsw-alias-state-warn-primary,#b45309)", borderRadius: 8, background: "var(--dsw-alias-bg-layer-2,#f3f4f6)", padding: "10px 12px" } },
-      (0, import_react2.createElement)(
-        "div",
-        { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 } },
-        (0, import_react2.createElement)(
-          "div",
-          { style: { fontWeight: 600, fontSize: 13 } },
-          updateInfo.updated ? fmt(t, "updatedRestart", { ver: updateInfo.current }) : updateInfo.result === "ok" ? updateInfo.autoRestart ? fmt(t, "updateAutoRestarting", { ver: updateInfo.latest }) : fmt(t, "updatedOk", { ver: updateInfo.latest }) : fmt(t, "updateAvailable", { ver: updateInfo.latest })
-        ),
-        updateInfo.result !== "ok" ? (0, import_react2.createElement)("button", { style: styles.primary, onClick: runUpdate, disabled: updateInfo.updating }, updateInfo.updating ? t("updating") : fmt(t, "updateTo", { ver: updateInfo.latest })) : updateInfo.autoRestart ? (0, import_react2.createElement)("button", { style: styles.btn, disabled: true }, t("restartingNow")) : (0, import_react2.createElement)("button", { style: styles.primary, onClick: restartPocket, disabled: updateInfo.restarting }, updateInfo.restarting ? t("restarting") : t("restartNow"))
-      ),
-      (0, import_react2.createElement)(
-        "div",
-        { style: styles.muted, marginTop: 4 },
-        updateInfo.updating ? fmt(t, "updatingDetail", { s: elapsed(updateInfo.startedAt) }) : updateInfo.restarting ? fmt(t, "restartingDetail", { s: elapsed(updateInfo.startedAt) }) : updateInfo.result === "ok" ? updateInfo.autoRestart ? t("updatedAutoDetail") : t("updatedRestartDetail") : updateInfo.result === "fail" ? fmt(t, "updateFailed", { err: errText(updateInfo.output) || t("unknownError") }) : fmt(t, "versionRange", { cur: updateInfo.current, latest: updateInfo.latest })
-      )
-    ) : null,
     // 局域网：标题行自带总开关 → 二维码+地址 → 设置行（访问密码 / 高级·手动选地址）
     (0, import_react2.createElement)(
       "div",

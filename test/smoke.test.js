@@ -1,4 +1,4 @@
-// 真实链路冒烟测试：不注入任何 stub，验证「真实代理转发 + polyfill 注入 + 状态快照 + RPC」。
+﻿// 真实链路冒烟测试：不注入任何 stub，验证「真实代理转发 + polyfill 注入 + 状态快照 + RPC」。
 // 之前的教训：测试全用 stub 会漏掉真实环境才出现的 bug（如 require 崩溃、未处理 rejection）。
 
 import { test } from 'node:test';
@@ -120,7 +120,7 @@ test('真实链路：代理转发 + polyfill 注入 + 状态快照（无 stub）
   }
 });
 
-test('真实链路：RPC status 走真实 service（含 restartNotice）', async () => {
+test('真实链路：RPC status 走真实 service', async () => {
   const up = await fakeUpstream();
   const home = await mkdtemp(join(tmpdir(), 'smoke-rpc-'));
   const service = createPocketService({ dshPort: up.address().port, port: 0, home });
@@ -133,7 +133,6 @@ test('真实链路：RPC status 走真实 service（含 restartNotice）', async
     assert.equal(r.value.proxyRunning, true);
     assert.ok(r.value.proxyPort > 0);
     assert.ok(r.value.lanQr.startsWith('data:image/png;base64,'), 'RPC 返回真实二维码');
-    assert.equal(r.value.restartNotice, null, '无重启标记');
   } finally {
     await service.dispose();
     await new Promise((r) => up.close(r));
@@ -205,9 +204,4 @@ test('文件浏览（issue #48）：宿主无 aionui explorer 时隐藏入口；
   assert.ok(src.includes('[data-mobile-nav="files"]'), 'Files 纳入抽屉内导航关闭');
 });
 
-test('Windows 更新 spawn（PR #54）：performUpdate 的 spawn 必须带 shell 选项', async () => {
-  const { readFileSync } = await import('node:fs');
-  const src = readFileSync(new URL('../lib/index.js', import.meta.url), 'utf8');
-  const seg = src.slice(src.indexOf("spawn('dsh'"), src.indexOf('spawn(\'dsh\')') + 500);
-  assert.ok(src.includes("shell: process.platform === 'win32'"), 'spawn 带 shell: win32（npm shim ENOENT / Node22 EINVAL）');
-});
+

@@ -32,12 +32,12 @@ ls -l dsh-pocket-fork
 
 ```sh
 node client/build.mjs     # 只改后端可跳过
-npm test                  # 建议顺手跑一遍（当前 109 个用例）
+npm test                  # 建议顺手跑一遍（当前 204 个用例）
 ```
 
 ### 重启 dsh web
 
-直接 `kill` 后用 `nohup` 拉起**会被终端会话回收**，必须用 detached 方式（和插件自带的自重启同一套做法）：
+直接 `kill` 后用 `nohup` 拉起**会被终端会话回收**，必须用 detached 方式拉起（不挂终端，终端退出也不会被回收）：
 
 ```sh
 # 1) 停掉当前 dsh web

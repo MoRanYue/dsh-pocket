@@ -1,4 +1,4 @@
-// 回归测试：dsh v0.1.5-alpha.1+ 直接挂 webServer 路径
+﻿// 回归测试：dsh v0.1.5-alpha.1+ 直接挂 webServer 路径
 //
 // 背景：dsh v0.1.5-alpha.1 把 client-connection 的 inject 从 ['webServer','credentials']
 // 收缩为 ['credentials']，rpc.handle 内部访问 owner.webServer 必抛
@@ -246,7 +246,7 @@ test('信封：缺 rpcId → 200 + invalid-request 兜底', async () => {
 test('信封：method 与 endpoint 不匹配 → 200 + gateway bad-request', async () => {
   const env = await setup();
   try {
-    const res = await postJson(env.port, `${POCKET_RPC_CHANNEL}/${POCKET_ENDPOINTS.status}`, { rpcId: 'r7', method: 'pocket.version', payload: {} });
+    const res = await postJson(env.port, `${POCKET_RPC_CHANNEL}/${POCKET_ENDPOINTS.status}`, { rpcId: 'r7', method: 'pocket.unknown', payload: {} });
     assert.equal(res.status, 200);
     const body = JSON.parse(res.body);
     assert.equal(body.rpcId, 'r7');
