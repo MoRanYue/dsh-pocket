@@ -308,7 +308,7 @@ test('隧道进度：startTunnel 阶段透出到 status.tunnelState', async () =
 });
 
 test('lib/index.js 模块可加载，apply 可调用（防模块级 ReferenceError 回归）', async () => {
-  // 回归：pocketRestart 曾引用 apply 参数里的 internals，点「重启」抛 ReferenceError
+  // 回归线：apply 内部曾出现模块级 ReferenceError（提前引用参数），此处只做冒烟防护
   const mod = await import('../lib/index.js');
   assert.equal(typeof mod.apply, 'function');
   assert.equal(typeof mod.name, 'string');
