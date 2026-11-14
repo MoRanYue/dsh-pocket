@@ -380,6 +380,27 @@ test('composer 底栏用稳定 card 标记并在窄屏允许换行 (#170)', () =
   );
 });
 
+test('composer 控件行换行后要有自适应高度，且不再给输入容器套消息间距 (#181)', () => {
+  const css = readFileSync(new URL('../client/mobile/mobile.css.ts', import.meta.url), 'utf8');
+  assert.ok(
+    css.includes('[data-phase] [data-composer-card="true"] > [class$="_row"] {\n    flex-wrap: wrap !important;\n    gap: 6px !important;'),
+    '保留 #170 的换行规则',
+  );
+  assert.ok(css.includes('height: auto !important'), '换行后高度自适应，第二行控件不被 28px 裁掉 (#181)');
+  assert.ok(css.includes('min-height: 28px !important'), '保留单行时的 28px 最小高度');
+  assert.ok(css.includes('max-height: none !important'), '解除宿主的 max-height 限制');
+  assert.ok(css.includes('overflow: visible !important'), '换行内容不能被裁掉');
+  assert.ok(
+    css.includes('[class$="_scroll"]:has(p):not([data-input-scroll])'),
+    'composer 自己的滚动容器不再继承消息列表的 20px/15px (#181)',
+  );
+  assert.equal(
+    (css.match(/\[class\$="_scroll"\]:has\(p\)\s*[,{]/g) ?? []).length,
+    0,
+    '四处消息列表规则都要带上 :not([data-input-scroll]) 排除',
+  );
+});
+
 test('统计行只从 composer.dock 标记，不误标 contenteditable composer 根节点', () => {
   const src = readFileSync(new URL('../client/mobile/mobile-apply.tsx', import.meta.url), 'utf8');
   assert.ok(

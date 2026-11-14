@@ -847,7 +847,10 @@ var MOBILE_CSS = `
     white-space: nowrap !important;
   }
 
-  [data-phase] [class$="_scroll"]:has(p) {
+  /* issue #181\uFF1Acomposer \u81EA\u5DF1\u7684\u6EDA\u52A8\u5BB9\u5668\u4E5F\u547D\u4E2D :has(p)\uFF08\u8F93\u5165\u6846\u91CC\u5C31\u662F\u6BB5\u843D\uFF09\uFF0C
+     \u4F1A\u628A 20px \u5185\u8FB9\u8DDD\u4E0E 15px \u5B57\u53F7\u5957\u5230\u53D1\u9001\u6309\u94AE\u90A3\u4E00\u884C\u4E0A\uFF0C\u628A\u76AE\u80A4\u7ED9\u7684\u6309\u94AE\u95F4\u8DDD\u51B2\u6389\u3002
+     \u7528 DSH \u5728\u8F93\u5165\u5BB9\u5668\u4E0A\u6253\u7684 data-input-scroll \u6392\u9664\u6389\u5B83\u3002 */
+  [data-phase] [class$="_scroll"]:has(p):not([data-input-scroll]) {
     padding-left: 20px !important;
     padding-right: 20px !important;
     font-size: 15px !important;
@@ -856,9 +859,9 @@ var MOBILE_CSS = `
      list items, so the container's inherited 15px is not enough. User
      messages render their text in a div whose class carries _text_
      (16px too) \u2014 cover it as well. */
-  [data-phase] [class$="_scroll"]:has(p) p,
-  [data-phase] [class$="_scroll"]:has(p) li,
-  [data-phase] [class$="_scroll"]:has(p) [class*="_text_"] {
+  [data-phase] [class$="_scroll"]:has(p):not([data-input-scroll]) p,
+  [data-phase] [class$="_scroll"]:has(p):not([data-input-scroll]) li,
+  [data-phase] [class$="_scroll"]:has(p):not([data-input-scroll]) [class*="_text_"] {
     font-size: 15px !important;
   }
 
@@ -891,6 +894,13 @@ var MOBILE_CSS = `
   [data-phase] [data-composer-card="true"] > [class$="_row"] {
     flex-wrap: wrap !important;
     gap: 6px !important;
+    /* issue #181\uFF1A\u5BBF\u4E3B/\u76AE\u80A4\u628A\u63A7\u5236\u884C\u9AD8\u5EA6\u9489\u5728 28px\uFF0C\u53EA\u8BA9 flex-wrap \u6362\u884C\u4F1A\u628A
+       \u7B2C\u4E8C\u884C\u5185\u5BB9\u88C1\u6389\uFF08\u5B9E\u6D4B scrollHeight 58 / clientHeight 28\uFF09\u3002\u6362\u884C\u5FC5\u987B\u914D\u4E0A
+       \u81EA\u9002\u5E94\u9AD8\u5EA6\uFF0C\u624D\u65E2\u4FDD\u4F4F #170\u300C\u6A21\u578B\u836F\u4E38\u4E0D\u88AB\u538B\u6210 0 \u5BBD\u300D\uFF0C\u53C8\u4E0D\u541E\u6389\u63A7\u4EF6\u3002 */
+    height: auto !important;
+    min-height: 28px !important;
+    max-height: none !important;
+    overflow: visible !important;
   }
   [data-phase] [data-composer-card="true"] > [class$="_row"] > :first-child {
     gap: 8px !important;

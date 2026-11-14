@@ -387,7 +387,10 @@ export const MOBILE_CSS = `
     white-space: nowrap !important;
   }
 
-  [data-phase] [class$="_scroll"]:has(p) {
+  /* issue #181：composer 自己的滚动容器也命中 :has(p)（输入框里就是段落），
+     会把 20px 内边距与 15px 字号套到发送按钮那一行上，把皮肤给的按钮间距冲掉。
+     用 DSH 在输入容器上打的 data-input-scroll 排除掉它。 */
+  [data-phase] [class$="_scroll"]:has(p):not([data-input-scroll]) {
     padding-left: 20px !important;
     padding-right: 20px !important;
     font-size: 15px !important;
@@ -396,9 +399,9 @@ export const MOBILE_CSS = `
      list items, so the container's inherited 15px is not enough. User
      messages render their text in a div whose class carries _text_
      (16px too) — cover it as well. */
-  [data-phase] [class$="_scroll"]:has(p) p,
-  [data-phase] [class$="_scroll"]:has(p) li,
-  [data-phase] [class$="_scroll"]:has(p) [class*="_text_"] {
+  [data-phase] [class$="_scroll"]:has(p):not([data-input-scroll]) p,
+  [data-phase] [class$="_scroll"]:has(p):not([data-input-scroll]) li,
+  [data-phase] [class$="_scroll"]:has(p):not([data-input-scroll]) [class*="_text_"] {
     font-size: 15px !important;
   }
 
@@ -431,6 +434,13 @@ export const MOBILE_CSS = `
   [data-phase] [data-composer-card="true"] > [class$="_row"] {
     flex-wrap: wrap !important;
     gap: 6px !important;
+    /* issue #181：宿主/皮肤把控制行高度钉在 28px，只让 flex-wrap 换行会把
+       第二行内容裁掉（实测 scrollHeight 58 / clientHeight 28）。换行必须配上
+       自适应高度，才既保住 #170「模型药丸不被压成 0 宽」，又不吞掉控件。 */
+    height: auto !important;
+    min-height: 28px !important;
+    max-height: none !important;
+    overflow: visible !important;
   }
   [data-phase] [data-composer-card="true"] > [class$="_row"] > :first-child {
     gap: 8px !important;
