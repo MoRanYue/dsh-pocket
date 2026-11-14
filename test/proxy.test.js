@@ -1612,6 +1612,11 @@ test('createHandshakeTracker：窗口内累计、clear 清零、过期重新计�
   t.record('8.8.8.8', now);
   t.prune(now + 5000);
   assert.equal(t.exhausted('8.8.8.8'), false, '过期条目被清掉');
+  // issue #217：窗口过期后上限自动失效，免得触顶一次就永久 503（用户只能重启浏览器）
+  const t2 = createHandshakeTracker({ max: 1, windowMs: 1000 });
+  t2.record('4.4.4.4', now);
+  assert.equal(t2.exhausted('4.4.4.4', now + 500), true, '窗口内仍算触顶');
+  assert.equal(t2.exhausted('4.4.4.4', now + 1500), false, '窗口过期后自动放行');
 });
 
 test('?token=<原始 PIN> 直达种 HttpOnly cookie，issue #35', async () => {
