@@ -1,3 +1,29 @@
+## [3.1.0](https://github.com/MoRanYue/dsh-pocket/compare/v3.0.1...v3.1.0) (2026-11-15)
+
+
+### Features
+
+* **client:** 公网/局域网密码显示为掩码，可点按显示（issue #179） ([a3576a4](https://github.com/MoRanYue/dsh-pocket/commit/a3576a4))
+* **i18n:** 新增日语界面（issue #192） ([0833cc9](https://github.com/MoRanYue/dsh-pocket/commit/0833cc9))
+* **lan:** 支持在设置里按网卡名/IP 黑名单排除虚拟网卡（issue #182） ([fd7348d](https://github.com/MoRanYue/dsh-pocket/commit/fd7348d))
+* **tunnel:** 就绪度探活与自动重建——边缘注册丢失（error 1016）时自动恢复（issue #215） ([69408d7](https://github.com/MoRanYue/dsh-pocket/commit/69408d7))
+
+### Bug Fixes
+
+* **client:** composer 控件行换行后不再被 28px 高度裁掉（issue #181） ([192ad6f](https://github.com/MoRanYue/dsh-pocket/commit/192ad6f))
+* **client:** 抽屉工作区列表在矮屏上不再被压成 0 高度（issue #196） ([0e1e662](https://github.com/MoRanYue/dsh-pocket/commit/0e1e662))
+* **client:** 隧道启动失败只在隧道区域提示一次（issue #194） ([22c8d08](https://github.com/MoRanYue/dsh-pocket/commit/22c8d08))
+* **client:** 二维码生成失败时给出可操作提示，不再空白（issue #203） ([a629671](https://github.com/MoRanYue/dsh-pocket/commit/a629671))
+* **client:** 仅在桌面宿主隐藏「添加工作区」，手机端保留文件选择器（issue #205） ([7dfc7c7](https://github.com/MoRanYue/dsh-pocket/commit/7dfc7c7))
+* **proxy:** 精确识别当前会话 cookie 名，陈旧 cookie 不再误判为已登录（issue #185） ([2156714](https://github.com/MoRanYue/dsh-pocket/commit/2156714))
+* **proxy:** 握手上限随窗口过期，且只在 200 时清零（issue #217） ([3a0ff89](https://github.com/MoRanYue/dsh-pocket/commit/3a0ff89))
+* **proxy:** 放宽 WebSocket 心跳容忍度（30s×8＝4 分钟），先 Ping 再计数（issue #221） ([4aea8ed](https://github.com/MoRanYue/dsh-pocket/commit/4aea8ed))
+* **service:** 二维码生成失败时记录错误码，便于排查（issue #211） ([97af435](https://github.com/MoRanYue/dsh-pocket/commit/97af435))
+
+### Tests
+
+* **proxy:** 用 http.request 发送真实 Host 头，覆盖公网分支 ([ec63692](https://github.com/MoRanYue/dsh-pocket/commit/ec63692))
+
 ## [3.0.1](https://github.com/MoRanYue/dsh-pocket/compare/v3.0.0...v3.0.1) (2026-11-11)
 
 
