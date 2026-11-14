@@ -1762,6 +1762,7 @@ var zh2 = {
   "resetFailed": "\u274C \u6062\u590D\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5",
   "lanTitle": "\u{1F4F6} \u5C40\u57DF\u7F51\uFF08\u540C\u4E00 WiFi\uFF09",
   "lanHint": "\u624B\u673A\u8FDE\u63A5\u540C\u4E00 WiFi \u540E\u626B\u7801\u5373\u53EF\u6253\u5F00",
+  "qrFailed": "\u4E8C\u7EF4\u7801\u751F\u6210\u5931\u8D25\uFF1A\u901A\u5E38\u662F\u7F3A\u5C11 qrcode \u4F9D\u8D56\u3002\u8BF7\u7528 dsh plugin add \u5B89\u88C5\uFF0C\u6216\u5728\u63D2\u4EF6\u76EE\u5F55\u6267\u884C npm install --omit=dev \u540E\u91CD\u542F",
   "lanAccess": "\u5C40\u57DF\u7F51\u8BBF\u95EE",
   "lanDisabledHint": "\u{1F512} \u5C40\u57DF\u7F51\u8BBF\u95EE\u5DF2\u5173\u95ED\uFF1A\u624B\u673A\u626B\u7801/\u94FE\u63A5\u5747\u4E0D\u53EF\u7528\uFF08\u516C\u7F51\u4E0D\u53D7\u5F71\u54CD\uFF09\u3002\u70B9\u300C\u5F00\u300D\u6062\u590D\u3002",
   "lanToggleTitleOff": "\u5173\u95ED\u5C40\u57DF\u7F51\u8BBF\u95EE",
@@ -1841,6 +1842,7 @@ var en2 = {
   "resetFailed": "\u274C Reset failed \u2014 please retry",
   "lanTitle": "\u{1F4F6} LAN (same Wi-Fi)",
   "lanHint": "Scan to open once your phone is on the same Wi-Fi",
+  "qrFailed": "QR generation failed: the qrcode dependency is usually missing. Install via dsh plugin add, or run npm install --omit=dev in the plugin directory and restart",
   "lanAccess": "LAN access",
   "lanDisabledHint": '\u{1F512} LAN access is off \u2014 the QR code and link are unavailable (public access is unaffected). Tap "On" to restore.',
   "lanToggleTitleOff": "Turn off LAN access",
@@ -2137,10 +2139,14 @@ function PocketSettingsTab({ rpcCall, t }) {
     style: { boxSizing: "border-box", flexShrink: 0, width: 36, height: 20, padding: 2, border: 0, borderRadius: 999, cornerShape: "round", position: "relative", cursor: "pointer", font: "inherit", background: on ? "var(--dsw-alias-brand-primary, #e6e8eb)" : "var(--dsw-alias-border-l3, #3a3f46)", transition: "background 120ms ease" },
     onClick
   }, (0, import_react2.createElement)("span", { style: { display: "block", width: 16, height: 16, borderRadius: "50%", cornerShape: "round", background: on ? "var(--dsw-alias-label-primary-foreground, #0f1115)" : "var(--dsw-alias-switch-thumb, #8b9198)", transition: "transform 120ms ease", transform: on ? "translateX(16px)" : "translateX(0)" } }));
-  const qrArea = (src, url, hint) => (0, import_react2.createElement)(
+  const qrArea = (src, url, hint, missingText) => (0, import_react2.createElement)(
     "div",
     { style: { background: "var(--dsw-alias-bg-layer-2,#f3f4f6)", borderRadius: 10, padding: "10px 12px", textAlign: "center", margin: "10px 0" } },
-    (0, import_react2.createElement)("img", { src, alt: "QR", style: styles.qr }),
+    src ? (0, import_react2.createElement)("img", { src, alt: "QR", style: styles.qr }) : url ? (0, import_react2.createElement)("div", {
+      role: "alert",
+      "data-pocket-qr-error": "1",
+      style: { ...styles.qr, boxSizing: "border-box", display: "flex", alignItems: "center", justifyContent: "center", padding: 14, fontSize: 12, lineHeight: 1.6, textAlign: "left", color: "var(--dsw-alias-label-primary,inherit)" }
+    }, missingText) : (0, import_react2.createElement)("div", { style: styles.qr, "data-pocket-qr-pending": "1" }),
     (0, import_react2.createElement)("div", { style: styles.code }, url),
     (0, import_react2.createElement)("div", { style: styles.muted }, hint)
   );
@@ -2193,7 +2199,7 @@ function PocketSettingsTab({ rpcCall, t }) {
       status?.lanEnabled === false ? (0, import_react2.createElement)("div", { style: { marginTop: 8, fontSize: 12, color: "var(--dsw-alias-state-warn-primary,#b45309)", lineHeight: 1.5 } }, t("lanDisabledHint")) : lanUrl ? (0, import_react2.createElement)(
         "div",
         null,
-        qrArea(status.lanQr, lanUrl, t("lanHint")),
+        qrArea(status.lanQr, lanUrl, t("lanHint"), t("qrFailed")),
         // 访问密码行：开关 + 值（关闭时提示直连）
         row(
           t("lanPin"),
@@ -2259,7 +2265,7 @@ function PocketSettingsTab({ rpcCall, t }) {
       tunnelUrl ? (0, import_react2.createElement)(
         "div",
         null,
-        qrArea(status.tunnelQr, tunnelUrl, namedMode ? t("namedRunningHint") : t("wanHint")),
+        qrArea(status.tunnelQr, tunnelUrl, namedMode ? t("namedRunningHint") : t("wanHint"), t("qrFailed")),
         // 防钓鱼 / 别收藏（issue #82）：公网链接仅本次有效、勿收藏提示
         (0, import_react2.createElement)("div", { style: { marginTop: 8, fontSize: 12, lineHeight: 1.5, borderLeft: "4px solid var(--dsw-alias-state-warn-primary,#b45309)", background: "var(--dsw-alias-bg-layer-2,#f3f4f6)", borderRadius: 8, padding: "8px 10px" } }, t("wanEphemeralWarn")),
         // 地址模式行（随机/固定；固定域名选中或编辑时高亮）
