@@ -75,6 +75,8 @@ function redactStatus(s) {
     tunnelUrl: s?.tunnelUrl ?? null,
     tunnelQr: s?.tunnelQr ?? null,
     tunnelState: s?.tunnelState ?? { phase: "idle" },
+    // 就绪度快照（自愈排障用；只有计数/时间戳/错误文案，无敏感信息）
+    tunnelHealth: s?.tunnelHealth ?? null,
     tunnelConfig: s?.tunnelConfig ?? { mode: "quick", hostname: "", tokenSet: false },
     dshPort: s?.dshPort ?? null
   };
@@ -1847,6 +1849,8 @@ var zh2 = {
   "wanPinCustom": "\u{1F510} \u8BBF\u95EE\u5BC6\u7801\uFF1A{pin}\uFF08\u81EA\u5B9A\u4E49\uFF0C\u5F00\u542F\u516C\u7F51\u4E0D\u518D\u81EA\u52A8\u6362\u65B0\uFF09",
   "wanEphemeralWarn": "\u26A0\uFE0F \u516C\u7F51\u94FE\u63A5\u4EC5\u5728\u672C\u6B21\u5F00\u542F\u671F\u95F4\u6709\u6548\uFF1A\u5173\u95ED\u6216\u91CD\u542F\u540E\u5931\u6548\uFF0C\u5E76\u53EF\u80FD\u88AB\u4ED6\u4EBA\u590D\u7528\u4E3A\u964C\u751F\u7F51\u7AD9\u3002\u8BF7\u52FF\u6536\u85CF\uFF0C\u6BCF\u6B21\u4ECE\u672C\u9875\u626B\u300C\u5F53\u524D\u300D\u4E8C\u7EF4\u7801\u3002\u9700\u8981\u56FA\u5B9A\u4E0D\u53D8\u7684\u5730\u5740\u8BF7\u7528\u4E0B\u65B9\u300C\u56FA\u5B9A\u57DF\u540D\u300D\u3002",
   "stopTunnel": "\u5173\u95ED\u516C\u7F51",
+  "reconnecting": "\u91CD\u8FDE\u4E2D\u2026",
+  "stopReconnect": "\u505C\u6B62\u91CD\u8FDE",
   "enable": "\u5F00\u542F\u516C\u7F51\u8BBF\u95EE",
   "opening": "\u5F00\u542F\u4E2D\u2026",
   "tunnelMode": "\u516C\u7F51\u6A21\u5F0F\uFF1A",
@@ -1929,6 +1933,8 @@ var en2 = {
   "wanPinCustom": "\u{1F510} PIN: {pin} (custom \u2014 not rotated on tunnel start)",
   "wanEphemeralWarn": '\u26A0\uFE0F The public link is valid only for this session: it stops working after you close or restart, and may be reused by someone else for an unrelated site. Do not bookmark it \u2014 scan the CURRENT QR code from this page each time. For a permanent address use "Fixed domain" below.',
   "stopTunnel": "Stop",
+  "reconnecting": "Reconnecting\u2026",
+  "stopReconnect": "Stop reconnecting",
   "enable": "Enable anywhere",
   "opening": "Enabling\u2026",
   "tunnelMode": "Mode:",
@@ -2011,6 +2017,8 @@ var ja2 = {
   "wanPinCustom": "\u{1F510} \u30A2\u30AF\u30BB\u30B9 PIN\uFF1A{pin}\uFF08\u30AB\u30B9\u30BF\u30E0\u3002\u30D1\u30D6\u30EA\u30C3\u30AF\u958B\u59CB\u6642\u306B\u81EA\u52D5\u3067\u306F\u65B0\u3057\u304F\u306A\u308A\u307E\u305B\u3093\uFF09",
   "wanEphemeralWarn": "\u26A0\uFE0F \u30D1\u30D6\u30EA\u30C3\u30AF\u30EA\u30F3\u30AF\u306F\u4ECA\u56DE\u306E\u6709\u52B9\u5316\u671F\u9593\u4E2D\u306E\u307F\u6709\u52B9\u3067\u3059\uFF1A\u30AA\u30D5\u306B\u3059\u308B\u304B\u518D\u8D77\u52D5\u3059\u308B\u3068\u7121\u52B9\u306B\u306A\u308A\u3001\u4ED6\u4EBA\u304C\u5225\u306E\u30B5\u30A4\u30C8\u306B\u518D\u5229\u7528\u3059\u308B\u53EF\u80FD\u6027\u304C\u3042\u308A\u307E\u3059\u3002\u30D6\u30C3\u30AF\u30DE\u30FC\u30AF\u305B\u305A\u3001\u6BCE\u56DE\u3053\u306E\u30DA\u30FC\u30B8\u3067\u300C\u73FE\u5728\u306E\u300DQR \u30B3\u30FC\u30C9\u3092\u8AAD\u307F\u53D6\u3063\u3066\u304F\u3060\u3055\u3044\u3002\u5909\u308F\u3089\u306A\u3044\u56FA\u5B9A\u30A2\u30C9\u30EC\u30B9\u304C\u5FC5\u8981\u306A\u5834\u5408\u306F\u3001\u4E0B\u306E\u300C\u56FA\u5B9A\u30C9\u30E1\u30A4\u30F3\u300D\u3092\u4F7F\u3063\u3066\u304F\u3060\u3055\u3044\u3002",
   "stopTunnel": "\u30D1\u30D6\u30EA\u30C3\u30AF\u3092\u505C\u6B62",
+  "reconnecting": "\u518D\u63A5\u7D9A\u4E2D\u2026",
+  "stopReconnect": "\u518D\u63A5\u7D9A\u3092\u505C\u6B62",
   "enable": "\u30D1\u30D6\u30EA\u30C3\u30AF\u30A2\u30AF\u30BB\u30B9\u3092\u6709\u52B9\u5316",
   "opening": "\u6709\u52B9\u5316\u4E2D\u2026",
   "tunnelMode": "\u30D1\u30D6\u30EA\u30C3\u30AF\u30E2\u30FC\u30C9\uFF1A",
@@ -2260,6 +2268,7 @@ function PocketSettingsTab({ rpcCall, t }) {
   const lanUrl = status?.lanUrl;
   const tunnelUrl = status?.tunnelUrl;
   const tunnelPhase = tunnelState?.phase ?? "idle";
+  const tunnelRestarting = tunnelPhase === "restarting";
   const tunnelStarting = ["downloading", "starting", "registering"].includes(tunnelPhase);
   const tunnelStateDetail = tunnelState?.detail ?? "";
   const tunnelStateStarted = tunnelState?.startedAt ?? null;
@@ -2407,9 +2416,13 @@ function PocketSettingsTab({ rpcCall, t }) {
         "div",
         { style: { display: "flex", alignItems: "center", justifyContent: "space-between" } },
         (0, import_react2.createElement)("span", { style: { fontWeight: 600, fontSize: 13 } }, t("wanAccess")),
-        tunnelUrl ? (0, import_react2.createElement)("button", { style: { ...styles.btn, height: 28, padding: "0 12px", fontSize: 12, color: "var(--dsw-alias-state-error-primary,#dc2626)" }, onClick: stopTunnel }, t("stopTunnel")) : (0, import_react2.createElement)("button", { style: { ...styles.primary, height: 28, padding: "0 14px", fontSize: 12 }, onClick: startTunnel, disabled: busy || tunnelStarting }, busy || tunnelStarting ? t("opening") : t("enable"))
+        tunnelUrl ? (0, import_react2.createElement)("button", { style: { ...styles.btn, height: 28, padding: "0 12px", fontSize: 12, color: "var(--dsw-alias-state-error-primary,#dc2626)" }, onClick: stopTunnel }, t("stopTunnel")) : tunnelRestarting ? (0, import_react2.createElement)("button", { style: { ...styles.btn, height: 28, padding: "0 12px", fontSize: 12, color: "var(--dsw-alias-state-error-primary,#dc2626)" }, onClick: stopTunnel }, t("stopReconnect")) : (0, import_react2.createElement)("button", { style: { ...styles.primary, height: 28, padding: "0 14px", fontSize: 12 }, onClick: startTunnel, disabled: busy || tunnelStarting }, busy || tunnelStarting ? t("opening") : t("enable"))
       ),
-      tunnelStarting ? (0, import_react2.createElement)(
+      tunnelRestarting ? (0, import_react2.createElement)(
+        "div",
+        { style: { marginTop: 8, fontSize: 12, color: "var(--dsw-alias-state-warn-primary,#b45309)" } },
+        errText(tunnelStateDetail) || t("reconnecting")
+      ) : tunnelStarting ? (0, import_react2.createElement)(
         "div",
         { style: { marginTop: 8, fontSize: 12, color: "var(--dsw-alias-label-secondary,#6b7280)" } },
         tunnelPhase === "downloading" ? fmt(t, "downloading", { s: elapsed(tunnelStateStarted) }) : fmt(t, "connecting", { s: elapsed(tunnelStateStarted), suffix: elapsed(tunnelStateStarted) > 30 ? t("slowHint") : "" })

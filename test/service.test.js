@@ -226,7 +226,7 @@ test('service：QR 生成失败时记录错误码，status 仍可用（issue #21
   assert.equal(status.lanQr, null, '生成失败时 status 返回 null，由前端提示');
   assert.ok(
     warnings.some(([message, code, detail]) =>
-      message === 'dsh-pocket: QR generation failed (%s): %s'
+      message === 'dsh-pocket: QR generation failed (%s): %s | 二维码生成失败（%s）：%s'
         && code === 'MODULE_NOT_FOUND'
         && detail === 'QR encoder unavailable'),
     '日志要带错误码与原因，便于区分缺依赖与其它失败',

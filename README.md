@@ -57,10 +57,10 @@ DSH Pocket 就是干这个的：**装上它，手机扫个码，就能实时看�
 | 🧘 会话保持             | 手机输一次密码后**长期免输**（登录状态绑定电脑上的 dsh web 进程：只要它不重启，手机不用再输；**dsh web 重启/更新后需重新输入一次**）                                               |
 | ⚡ 实时同步             | 流式输出走 WebSocket 全透传——**电脑上在输出，手机上同步在滚**，可双向操作；内置心跳保活（防路由器 NAT/省电机制静默断链，断线自动重连）                                             |
 | 📱 移动端适配           | 窄屏自动变抽屉布局（移植 dsh-web-mobile，MIT）：侧栏抽屉、会话全宽、状态栏安全区、触控优化                                                                                         |
-| 🧭 可选右边栏           | 手机端显示原生右边栏入口；普通手机可在设置中关闭以保持紧凑，折叠屏展开后可更方便地同时使用终端底栏和右边栏                                                                         |
 | 📁 文件浏览             | 移动端「文件浏览」入口需要宿主提供 explorer 面板（dsh-web-ui 组件）；官方 DSH 未内置时入口自动隐藏，不会出现"点了没反应"                                                           |
 | 🗜️ 传输压缩             | 大 JSON 响应自动 gzip/brotli（长会话 17MB → ~1MB，brotli 质量 6：快且省流量），手机加载更快、更省流量                                                                              |
 | 🔁 隧道自动恢复         | DSH 重启后自动重新拉起之前开着的公网隧道，无需手动重开                                                                                                                             |
+| 🩺 就绪度自愈           | 每 20 秒探活 cloudflared 的 `/ready`：进程还活着、但边缘注册已丢失（手机端报 Cloudflare `error 1016/1033/530`）时自动重建隧道；快速隧道换新地址（重新扫码即可），命名隧道地址不变。重建预算累计 5 次（隧道连续健康 10 分钟或手动重新开启才清零），用尽后停手并在设置页报错；自动重连期间可点「停止重连」取消 |
 | 🧩 零依赖安装           | 一个 npm 包、一个设置页，没有核心/适配器要分开装；无需账号、无需服务器                                                                                                             |
 
 ## 🚀 怎么用
@@ -146,10 +146,20 @@ npx @deepseek-ai/dsh web
 | Linux 服务器装不上 cloudflared（issue #45） | 远程 Linux 国内/企业网下所有 CDN 源（GitHub/ghproxy/gh.ddlc/gh-proxy）都连不上时：在服务器上手动装 `cloudflared`（如 `apt install cloudflared`、`dnf install cloudflared`、或下载 tgz 解压到任意目录），然后在 `$DSH_HOME/dsh-pocket/settings.json` 加 `"cloudflaredPath": "/path/to/cloudflared"`，重启 `dsh web` 后插件直接调用它，**不再走自动下载** |
 | 版本停在 0.x 升不上去                       | `^0.x` 范围不允许升到 1.x：更新用 `--latest`（`dsh plugin --profile web update dsh-pocket-fork --latest -w`）                                                                                                                                                                                                                                                |
 | 公网 `error 1033`                           | 见下方「公网隧道常见问题」——多半是本机代理/VPN（Clash 等 TUN 模式）掐断了隧道                                                                                                                                                                                                                                                                           |
+| 公网 `error 1016` / 用着用着突然全挂        | 隧道进程还活着、但与 Cloudflare 边缘的注册已丢失（`/ready` 的 `readyConnections=0`）。插件每 20 秒探活、连续 3 次失败自动重建（快速隧道换新地址，手机重新扫码；命名隧道地址不变）；旧版本：设置页「关闭公网访问」再「开启公网访问」 |
 
 ## ⚠️ 公网隧道常见问题（必读）
 
 **现象**：点「开启公网访问」后，手机上打开公网地址报 `error 1033`（Tunnel error）。
+
+**另一类现场：用着用着突然全挂，手机上可能报 `error 1016`（Origin DNS error）。**
+此时 cloudflared 进程还活着、本地 metrics 端口照常应答，但它与 Cloudflare 边缘的连接已经全部失效
+（`/ready` 返回 `readyConnections: 0`，注册接口成串 `server_error`），临时域名被 Cloudflare 回收，
+手机打开公网地址就是 1016/1033/530。
+**插件每 20 秒探活一次 `/ready`，连续 3 次失败就自动重建隧道**：快速隧道会换新地址（重新扫码即可），
+命名隧道地址不变、恢复后直接可用；连续 5 次自愈重建仍未恢复则停手（重建预算累计，只有隧道连续健康 10 分钟或用户手动重新开启后才清零），设置页会显示失败原因；自动重连期间可点「停止重连」取消。
+旧版本只能手动「关闭公网访问」再「开启公网访问」来热修复。
+
 
 **最常见原因：本机开着代理/VPN（Clash、Surge、v2ray、sing-box 等，尤其 TUN 模式）**。
 这类工具会接管全部流量，并常常把 cloudflared 的隧道边缘连接
@@ -198,10 +208,10 @@ npx @deepseek-ai/dsh web
 | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `lib/index.js`       | 插件入口：自动起代理 + 注册 RPC + 访问密码管理（公网 8 位每次开启变新；局域网独立 8 位可手动刷新/开关）+ 局域网访问总开关 + 桌面端环境适配                                         |
 | `lib/settings.mjs`   | 设置持久化：局域网访问总开关（默认开启）+ 局域网密码开关（默认开启）存 `$DSH_HOME/dsh-pocket/settings.json`                                                                        |
-| `lib/service.mjs`    | 服务：代理生命周期（端口自适应）、公网隧道（自动恢复）、状态快照（含二维码）                                                                                                       |
+| `lib/service.mjs`    | 服务：代理生命周期（端口自适应）、公网隧道（自动恢复 + 就绪度自愈）、状态快照（含二维码/健康度） |
 | `lib/proxy.mjs`      | 改头反向代理：Host/Origin → loopback，HTTP + WebSocket 透传 + polyfill 注入 + gzip/brotli 压缩 + 按 Host 区分的访问令牌认证（公网必验；局域网按开关）+ 局域网关闭时拦截局域网 Host |
-| `lib/tunnel.mjs`     | cloudflared：多镜像源下载（清华优先）/自适应多线程/启动/解析公网 URL（HTTP/2）                                                                                                     |
-| `lib/web-rpc.js`     | loopback RPC：`status` / `tunnel.start` / `tunnel.stop` / `lan.setEnabled` / `version` / `update` / `restart`                                                                      |
+| `lib/tunnel.mjs`     | cloudflared：多镜像源下载（清华优先）/自适应多线程/启动/解析公网 URL（HTTP/2）/metrics 就绪探活                                                                                                     |
+| `lib/web-rpc.js`     | loopback RPC：`status` / `tunnel.start` / `tunnel.stop` / `lan.setEnabled`                                                                      |
 | `client/`            | 设置页「手机访问」+ 移动端适配（dsh-web-mobile 移植）                                                                                                                              |
 | `bin/dsh-pocket-fork.mjs` | CLI：局域网/公网模式，打印 URL + 二维码                                                                                                                                            |
 
