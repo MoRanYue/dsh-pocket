@@ -1207,6 +1207,26 @@ test('upstreamPathWithLaunchToken（issue #77）：首屏根路径补 token，�
   // 登录成功后的强制握手标记：即使带着旧 cookie 也重做一次（cookie 可能已过期/被撤销）
   assert.equal(upstreamPathWithLaunchToken('/?dsh-pocket-auth=1', 'GET', 'dsh-auth-abc=1', TOK),
     `/?dsh-pocket-auth=1&token=${TOK}`, '带强制标记时无视旧 cookie');
+  // issue #185：已从上游学到当前 cookie 名后按名精确比对，旧 authority 的残留 cookie 不再算已登录
+  const known = new Set(['dsh-auth-current']);
+  assert.equal(upstreamPathWithLaunchToken('/', 'GET', 'dsh-auth-current=1', TOK, known), '/',
+    '名字命中 → 不补 token');
+  assert.equal(upstreamPathWithLaunchToken('/', 'GET', 'dsh-auth-stale=1', TOK, known), `/?token=${TOK}`,
+    '旧名字不命中 → 补 token');
+});
+
+test('hasUsableAuthCookie（issue #185）：学到当前 cookie 名后按名比对，未学到时退回前缀判断', async () => {
+  const { hasUsableAuthCookie } = await import('../lib/proxy.mjs');
+  assert.equal(hasUsableAuthCookie(undefined, null), false, '没有 cookie 头');
+  assert.equal(hasUsableAuthCookie('other=1', null), false, '只有无关 cookie');
+  assert.equal(hasUsableAuthCookie('dsh-auth-abc=1', null), true, '还不知道名字时沿用前缀判断');
+  assert.equal(hasUsableAuthCookie('dsh-auth-abc=1', new Set()), true, '空集合等同未知');
+  assert.equal(hasUsableAuthCookie('dsh-auth-abc=1', new Set(['dsh-auth-abc'])), true, '名字命中');
+  assert.equal(hasUsableAuthCookie('dsh-auth-old=1', new Set(['dsh-auth-new'])), false, '旧名字不命中');
+  assert.equal(hasUsableAuthCookie('a=1; dsh-auth-new=2; b=3', new Set(['dsh-auth-new'])), true,
+    '多段 cookie 中任意一段命中即可');
+  assert.equal(hasUsableAuthCookie('dsh-auth-newish=1', new Set(['dsh-auth-new'])), false,
+    '前缀相同但名字不同不算命中');
 });
 
 test('withLaunchToken：无视 cookie 强制补 token（陈旧会话 cookie 自愈用）', async () => {
@@ -1396,6 +1416,66 @@ test('陈旧的会话 cookie：代理带 token 重新握手，不再把上游 40
   }
 });
 
+test('学到当前会话 cookie 名（issue #185）：旧 authority 残留的 cookie 直接补 token，不再先吃一次 401', async () => {
+  const http = await import('node:http');
+  const TOK = 'launch-token-abc123';
+  const FRESH_NAME = 'dsh-auth-newprocess';
+  const seen = [];
+  // 上游只在 Set-Cookie 里下发**本 authority** 的 cookie 名；名字里带端口哈希，
+  // 所以「重启/换端口之后的旧 cookie」名字不同。代理要靠学到的名字把它们区分开。
+  const upstream = http.createServer((req, res) => {
+    seen.push(req.url);
+    const u = new URL(req.url ?? '/', 'http://x');
+    if (u.pathname === '/' && u.searchParams.get('token') === TOK) {
+      res.writeHead(303, { location: './', 'set-cookie': `${FRESH_NAME}=v2.signed-by-this-process; Path=/; HttpOnly` });
+      res.end();
+      return;
+    }
+    if (u.pathname === '/' && String(req.headers.cookie ?? '').includes(FRESH_NAME)) {
+      res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+      res.end('<html><body>index</body></html>');
+      return;
+    }
+    res.writeHead(401, { 'content-type': 'text/plain; charset=utf-8' });
+    res.end('dsh web authentication required; reopen the URL printed by dsh web.\n');
+  });
+  await new Promise((r) => upstream.listen(0, '127.0.0.1', r));
+  const proxy = await createPocketProxy({
+    port: 0, host: '127.0.0.1', upstream: { host: '127.0.0.1', port: upstream.address().port },
+    injectHtml: '', launchToken: () => TOK,
+  });
+  const base = `http://127.0.0.1:${proxy.port}`;
+  const nav = { host: '192.168.1.50:3081' };
+  try {
+    // 1) 首次进入：没有 cookie → 补 token → 过渡页；代理从 Set-Cookie 学到当前名字
+    const first = await fetch(`${base}/`, { redirect: 'manual', headers: nav });
+    assert.equal(first.status, 200, '首次握手成功');
+    assert.equal(first.headers.get('x-dsh-pocket-handshake'), 'transition');
+
+    // 2) dsh web 重启换端口后，浏览器里只剩旧 authority 的 cookie：学到的名字不匹配
+    //    → 直接补 token，而不是先发一次必然 401 的请求
+    const before = seen.length;
+    const stale = await fetch(`${base}/`, {
+      redirect: 'manual', headers: { ...nav, cookie: 'dsh-auth-oldprocess=v2.signed-by-old-process' },
+    });
+    assert.equal(stale.status, 200, '旧 cookie 被识别为不可用并重新握手');
+    assert.equal(stale.headers.get('x-dsh-pocket-handshake'), 'transition');
+    assert.equal(seen.length, before + 1, '只打了一次上游（补 token），没有先吃 401');
+    assert.ok(seen[seen.length - 1].includes(`token=${TOK}`), '这次转发确实带了启动 token');
+
+    // 3) 当前名字的 cookie：正常放行，不再补 token
+    const hitsBefore = seen.length;
+    const ok = await fetch(`${base}/`, { redirect: 'manual', headers: { ...nav, cookie: `${FRESH_NAME}=v2.signed-by-this-process` } });
+    assert.equal(ok.status, 200, '当前 cookie 直接返回首页');
+    assert.match(await ok.text(), /index/);
+    assert.equal(seen.length, hitsBefore + 1, '正常访问只打一次上游');
+    assert.ok(!seen[seen.length - 1].includes('token='), '有效 cookie 时不再补 token');
+  } finally {
+    await proxy.close();
+    await new Promise((r) => upstream.close(r));
+  }
+});
+
 test('陈旧会话 cookie：重发只做一次——token 也不被接受时照原样 401，不进入循环', async () => {
   const http = await import('node:http');
   const TOK = 'launch-token-abc123';
@@ -1459,7 +1539,9 @@ test('陈旧会话 cookie 也不会无限刷新：浏览器不收新 cookie 时�
     assert.equal(blocked.status, 503, '达到上限后停下，不再自动刷新');
     assert.equal(blocked.headers.get('x-dsh-pocket-handshake'), 'blocked');
     assert.match(await blocked.text(), /dsh-pocket-retry/, '提示页给出可操作的出口');
-    assert.equal(hits, 6, '三次握手各两次上游请求，之后不再打上游');
+    // 第 1 次还不知道当前名字：按前缀判定 → 上游 401 → 带 token 重发（2 次上游请求）。
+    // 从上游 Set-Cookie 学到名字后，旧名字的 cookie 直接判定不可用，后续每次只打一次上游。
+    assert.equal(hits, 4, '首次握手两次上游请求，之后每次一次；达到上限后不再打上游');
   } finally {
     await proxy.close();
     await new Promise((r) => upstream.close(r));
