@@ -401,6 +401,21 @@ test('composer 控件行换行后要有自适应高度，且不再给输入容�
   );
 });
 
+test('矮屏抽屉里的工作区有保底高度且可滚动 (#196)', () => {
+  const css = readFileSync(new URL('../client/mobile/mobile.css.ts', import.meta.url), 'utf8');
+  assert.ok(css.includes('[class$="_regionArea"]'), '定位到工作区容器');
+  assert.ok(css.includes('min-height: min(55vh, 420px) !important'), '工作区在矮屏上不会被压成 0 高 (#196)');
+  assert.ok(css.includes('overscroll-behavior: contain !important'), '滚动不穿透到抽屉外');
+  assert.ok(
+    css.includes('[data-mobile-nav="frame"]:not([data-sidebar-drawer]) :has(> [class$="_regionArea"])'),
+    '滚动规则挂在插件自绘抽屉上，官方抽屉在场时不插手',
+  );
+  assert.ok(
+    css.includes('[data-mobile-nav="frame"]:not([data-sidebar-drawer]) [class$="_regionArea"]'),
+    '保底高度规则同样只在插件自绘抽屉里生效',
+  );
+});
+
 test('统计行只从 composer.dock 标记，不误标 contenteditable composer 根节点', () => {
   const src = readFileSync(new URL('../client/mobile/mobile-apply.tsx', import.meta.url), 'utf8');
   assert.ok(

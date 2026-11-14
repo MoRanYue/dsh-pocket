@@ -451,6 +451,26 @@ export const MOBILE_CSS = `
     min-width: 0 !important;
   }
 
+  /* --- 抽屉里的工作区不能被上下固定区块挤没（issue #196）---
+     窄屏抽屉高度固定 100%，上部插件入口区与底部 footer 都是 flex:none，
+     中间的 regionArea 是 flex:1; min-height:0，在矮屏（如 iPhone SE）会被压到
+     0 高，会话列表完全点不到。给工作区一个保底高度，并让它所在的侧栏列可滚动。
+     用 :has(> ...) 定位列根：sidebarCol 与真正的侧栏根之间隔着一层
+     display:contents 的插槽包装，用子元素序号会选错。官方抽屉在场时插件不插手，
+     所以仍按 :not([data-sidebar-drawer]) 收口。 */
+  [data-mobile-nav="frame"]:not([data-sidebar-drawer]) :has(> [class$="_regionArea"]) {
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain !important;
+    scrollbar-width: none !important;
+  }
+  [data-mobile-nav="frame"]:not([data-sidebar-drawer]) :has(> [class$="_regionArea"])::-webkit-scrollbar {
+    display: none !important;
+  }
+  [data-mobile-nav="frame"]:not([data-sidebar-drawer]) [class$="_regionArea"] {
+    min-height: min(55vh, 420px) !important;
+  }
+
   /* --- Composer popups as bottom sheets on mobile ---
      Two composer-anchored popups break on phones (field: bottom + side
      cut, only part of the popup visible):

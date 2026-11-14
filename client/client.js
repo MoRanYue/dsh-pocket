@@ -911,6 +911,26 @@ var MOBILE_CSS = `
     min-width: 0 !important;
   }
 
+  /* --- \u62BD\u5C49\u91CC\u7684\u5DE5\u4F5C\u533A\u4E0D\u80FD\u88AB\u4E0A\u4E0B\u56FA\u5B9A\u533A\u5757\u6324\u6CA1\uFF08issue #196\uFF09---
+     \u7A84\u5C4F\u62BD\u5C49\u9AD8\u5EA6\u56FA\u5B9A 100%\uFF0C\u4E0A\u90E8\u63D2\u4EF6\u5165\u53E3\u533A\u4E0E\u5E95\u90E8 footer \u90FD\u662F flex:none\uFF0C
+     \u4E2D\u95F4\u7684 regionArea \u662F flex:1; min-height:0\uFF0C\u5728\u77EE\u5C4F\uFF08\u5982 iPhone SE\uFF09\u4F1A\u88AB\u538B\u5230
+     0 \u9AD8\uFF0C\u4F1A\u8BDD\u5217\u8868\u5B8C\u5168\u70B9\u4E0D\u5230\u3002\u7ED9\u5DE5\u4F5C\u533A\u4E00\u4E2A\u4FDD\u5E95\u9AD8\u5EA6\uFF0C\u5E76\u8BA9\u5B83\u6240\u5728\u7684\u4FA7\u680F\u5217\u53EF\u6EDA\u52A8\u3002
+     \u7528 :has(> ...) \u5B9A\u4F4D\u5217\u6839\uFF1AsidebarCol \u4E0E\u771F\u6B63\u7684\u4FA7\u680F\u6839\u4E4B\u95F4\u9694\u7740\u4E00\u5C42
+     display:contents \u7684\u63D2\u69FD\u5305\u88C5\uFF0C\u7528\u5B50\u5143\u7D20\u5E8F\u53F7\u4F1A\u9009\u9519\u3002\u5B98\u65B9\u62BD\u5C49\u5728\u573A\u65F6\u63D2\u4EF6\u4E0D\u63D2\u624B\uFF0C
+     \u6240\u4EE5\u4ECD\u6309 :not([data-sidebar-drawer]) \u6536\u53E3\u3002 */
+  [data-mobile-nav="frame"]:not([data-sidebar-drawer]) :has(> [class$="_regionArea"]) {
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain !important;
+    scrollbar-width: none !important;
+  }
+  [data-mobile-nav="frame"]:not([data-sidebar-drawer]) :has(> [class$="_regionArea"])::-webkit-scrollbar {
+    display: none !important;
+  }
+  [data-mobile-nav="frame"]:not([data-sidebar-drawer]) [class$="_regionArea"] {
+    min-height: min(55vh, 420px) !important;
+  }
+
   /* --- Composer popups as bottom sheets on mobile ---
      Two composer-anchored popups break on phones (field: bottom + side
      cut, only part of the popup visible):
