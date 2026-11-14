@@ -6,7 +6,7 @@ import { MobileDrawerFooter } from './MobileDrawerFooter.tsx'
 import { startAddWorkspaceHider } from './add-workspace.ts'
 import { MOBILE_CSS } from './mobile.css.ts'
 import { startMobileEnterKey } from './enter-key.mjs'
-import { NS, en, zh } from './locales.ts'
+import { NS, en, ja, zh } from './locales.ts'
 import type { MobileNavKey } from './locales.ts'
 import { resolveLayout, persistLayoutFromUrl } from './layout-mode.mjs'
 import { POCKET_RPC_CHANNEL, POCKET_ENDPOINTS } from '../api.js'
@@ -46,7 +46,7 @@ export function mobileApply(ctx): void {
     narrow = { matches: true, addEventListener: () => {}, removeEventListener: () => {} } as MediaQueryList;
   }
 
-  ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'dsh-mobile-nav: dictionaries')
+  ctx.effect(() => ctx.locale.register(NS, { zh, en, ja }), 'dsh-mobile-nav: dictionaries')
 
   ctx.effect(() => {
     const tag = document.createElement('style')

@@ -1,23 +1,31 @@
-// 设置页 i18n 词典完整性（PR #36）：zh/en key 集合必须一致、占位符一致、
-// 源码 t()/fmt() 引用的 key 必须都在词典中——防止加字符串时 key 不同步（英文漏翻/白屏 key）。
+// 设置页 i18n 词典完整性（PR #36）：zh/en/ja key 集合必须一致、占位符一致、
+// 源码 t()/fmt() 引用的 key 必须都在词典中——防止加字符串时 key 不同步（漏翻/白屏 key）。
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-const { NS, zh, en } = await import('../client/pocket-locales.js');
+const { NS, zh, en, ja } = await import('../client/pocket-locales.js');
 
 const ph = (s) => [...String(s).matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort();
 
-test('pocket 词典：zh/en key 集合完全一致', () => {
+test('pocket 词典：zh/en/ja key 集合完全一致', () => {
   const zhKeys = Object.keys(zh).sort();
-  const enKeys = Object.keys(en).sort();
-  assert.deepEqual(enKeys, zhKeys, 'en 与 zh 的 key 必须一一对应');
+  assert.deepEqual(Object.keys(en).sort(), zhKeys, 'en 与 zh 的 key 必须一一对应');
+  assert.deepEqual(Object.keys(ja).sort(), zhKeys, 'ja 与 zh 的 key 必须一一对应');
   assert.ok(zhKeys.length >= 40, `词典 key 数异常（${zhKeys.length}）——i18n 重构后应有 40+`);
 });
 
-test('pocket 词典：占位符 {placeholder} 在 zh/en 中一致', () => {
+test('pocket 词典：占位符 {placeholder} 在 zh/en/ja 中一致', () => {
   for (const key of Object.keys(zh)) {
     assert.deepEqual(ph(en[key]), ph(zh[key]), `key "${key}" 的占位符在 zh/en 不一致`);
+    assert.deepEqual(ph(ja[key]), ph(zh[key]), `key "${key}" 的占位符在 zh/ja 不一致`);
+  }
+});
+
+test('pocket 词典：三语都没有空字符串（漏翻至少留下原文也比空白好）', () => {
+  for (const [name, dict] of [['zh', zh], ['en', en], ['ja', ja]]) {
+    const empty = Object.keys(dict).filter((k) => !String(dict[k]).trim());
+    assert.deepEqual(empty, [], `${name} 里存在空文案`);
   }
 });
 
@@ -31,5 +39,6 @@ test('pocket 词典：源码 t()/fmt() 引用的 key 都在词典中', () => {
   // section 经 translate() 调用，单独校验
   assert.equal(zh.section, '手机访问', 'tab 标签中文');
   assert.equal(en.section, 'Phone access', 'tab 标签英文');
+  assert.equal(ja.section, 'スマホアクセス', 'tab 标签日文');
   assert.equal(NS, 'pocket', 'namespace 固定');
 });

@@ -3,7 +3,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { zh, en } from '../client/pocket-locales.js';
+import { zh, en, ja } from '../client/pocket-locales.js';
 
 const src = readFileSync(new URL('../client/index.jsx', import.meta.url), 'utf8');
 
@@ -42,7 +42,7 @@ test('密码行接入 PinMask，默认遮罩', () => {
   assert.equal((src.match(/h\(PinMask, \{ value: status\./g) ?? []).length, 2, '两处密码行都要接 PinMask');
   assert.ok(src.includes("'\\u2022'.repeat(10)"), '默认显示 10 个圆点');
 
-  for (const [name, dict] of [['zh', zh], ['en', en]]) {
+  for (const [name, dict] of [['zh', zh], ['en', en], ['ja', ja]]) {
     assert.ok(dict.pinShow && dict.pinHide, name + ' 词典要有显示/隐藏文案');
   }
 });
