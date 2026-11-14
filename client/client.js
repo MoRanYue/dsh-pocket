@@ -1735,8 +1735,24 @@ function mobileApply(ctx) {
   ctx.effect(() => {
     if (!narrow.matches) return () => {
     };
-    return startAddWorkspaceHider();
-  }, "dsh-mobile-nav: hide add-workspace (issue #17)");
+    let active = true;
+    let dispose = null;
+    const load = async () => {
+      try {
+        const result = await ctx.connection.rpc.call(POCKET_RPC_CHANNEL, POCKET_ENDPOINTS.status, {});
+        if (!active) return;
+        if (result?.ok === true && result.value?.desktop === true) {
+          dispose = startAddWorkspaceHider();
+        }
+      } catch {
+      }
+    };
+    void load();
+    return () => {
+      active = false;
+      dispose?.();
+    };
+  }, "dsh-mobile-nav: hide add-workspace on desktop hosts only (issue #17 #205)");
   ctx.slots.inject("conversation.session.header.actions", () => ctx.slots.register({
     name: "conversation.session.header.actions",
     id: "mobile-nav-toggle",
