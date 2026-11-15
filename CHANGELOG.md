@@ -1,3 +1,26 @@
+# [3.1.0](https://github.com/MoRanYue/dsh-pocket/compare/v3.0.1...v3.1.0) (2026-11-15)
+
+
+### Bug Fixes
+
+* **client:** 「添加工作区」只在明确是桌面宿主时隐藏（issue [#205](https://github.com/MoRanYue/dsh-pocket/issues/205)） ([7dfc7c7](https://github.com/MoRanYue/dsh-pocket/commit/7dfc7c7e32d2b03d853667f318dbba1a5d35e3a3))
+* **client:** composer 控件行换行后不再被 28px 高度裁掉（issue [#181](https://github.com/MoRanYue/dsh-pocket/issues/181)） ([192ad6f](https://github.com/MoRanYue/dsh-pocket/commit/192ad6f64a9503835a558a8386d03c266776eb53)), closes [#170](https://github.com/MoRanYue/dsh-pocket/issues/170)
+* **client:** 二维码生成失败时给出可操作提示（issue [#203](https://github.com/MoRanYue/dsh-pocket/issues/203)） ([a629671](https://github.com/MoRanYue/dsh-pocket/commit/a629671250bf9a3c4f76f73ae270b5e35180525f))
+* **client:** 公网访问开启失败只在一处展示（issue [#194](https://github.com/MoRanYue/dsh-pocket/issues/194)） ([22c8d08](https://github.com/MoRanYue/dsh-pocket/commit/22c8d0818a8f1be473f086ec33f89f1fcf3d417a))
+* **client:** 矮屏抽屉里的工作区不再被挤成 0 高（issue [#196](https://github.com/MoRanYue/dsh-pocket/issues/196)） ([0e1e662](https://github.com/MoRanYue/dsh-pocket/commit/0e1e66212350331b3af3cbb375b7d6846b818ae3))
+* **proxy:** 握手上限随窗口过期，且只在 200 时清零（issue [#217](https://github.com/MoRanYue/dsh-pocket/issues/217)） ([3a0ff89](https://github.com/MoRanYue/dsh-pocket/commit/3a0ff899bde0bb819492e6d8ae70f0371ebe5c84))
+* **proxy:** 放宽 WS 心跳容忍度，先 Ping 再计数（issue [#221](https://github.com/MoRanYue/dsh-pocket/issues/221)） ([4aea8ed](https://github.com/MoRanYue/dsh-pocket/commit/4aea8ed4e730a4462f36a4a4fe6fbf98a7944e4e))
+* **proxy:** 精确识别当前会话 cookie 名（issue [#185](https://github.com/MoRanYue/dsh-pocket/issues/185)） ([2156714](https://github.com/MoRanYue/dsh-pocket/commit/215671465e512d98c89987899d4025b01e9e8d92))
+* **service:** 二维码生成失败时记录错误码（issue [#211](https://github.com/MoRanYue/dsh-pocket/issues/211)） ([97af435](https://github.com/MoRanYue/dsh-pocket/commit/97af4354180b523c2017a10becb6919ccd191bfa)), closes [#203](https://github.com/MoRanYue/dsh-pocket/issues/203)
+
+
+### Features
+
+* **client:** 访问密码默认遮罩，点按切换明文（issue [#179](https://github.com/MoRanYue/dsh-pocket/issues/179)） ([a3576a4](https://github.com/MoRanYue/dsh-pocket/commit/a3576a4265d1c4d26d25ffbed0b012b9bb148031))
+* **i18n:** 新增日语（ja）语言包（issue [#192](https://github.com/MoRanYue/dsh-pocket/issues/192)） ([0833cc9](https://github.com/MoRanYue/dsh-pocket/commit/0833cc94c175b1299b0c0026d5909c8fde343e3a))
+* **tunnel:** 就绪度探活与自动重建（issue [#215](https://github.com/MoRanYue/dsh-pocket/issues/215)） ([69408d7](https://github.com/MoRanYue/dsh-pocket/commit/69408d701adf48fd068257cdf48819ca18fa0b38))
+* 支持 settings.json blacklist 字段，按网卡名或 IP 排除自动选择的网卡 ([#182](https://github.com/MoRanYue/dsh-pocket/issues/182)) ([fd7348d](https://github.com/MoRanYue/dsh-pocket/commit/fd7348dc4c05c084211e88d3b3652378615898d7))
+
 ## [3.0.1](https://github.com/MoRanYue/dsh-pocket/compare/v3.0.0...v3.0.1) (2026-11-11)
 
 
