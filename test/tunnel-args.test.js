@@ -5,7 +5,28 @@ import assert from 'node:assert/strict';
 import { writeFile, readFile, mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { startQuickTunnel, startNamedTunnel, firstMeaningfulErrorLine } from '../lib/tunnel.mjs';
+import { startQuickTunnel, startNamedTunnel, cloudflaredArgs, firstMeaningfulErrorLine } from '../lib/tunnel.mjs';
+
+test('argv 顺序：命名隧道的 --metrics / --protocol 必须在 run 之前（否则 cloudflared 报 flag not defined）', () => {
+  const argv = cloudflaredArgs({ mode: 'named', metricsPort: 20241 });
+  assert.equal(argv[0], '--no-autoupdate', '--no-autoupdate 必须在全局位置');
+  const runAt = argv.indexOf('run');
+  assert.ok(runAt > 0, '命名隧道必须带 run 子命令');
+  assert.ok(argv.indexOf('--metrics') > 0 && argv.indexOf('--metrics') < runAt, '--metrics 必须出现在 run 之前');
+  assert.ok(argv.indexOf('--protocol') < runAt, '--protocol 必须出现在 run 之前');
+  assert.equal(argv[argv.indexOf('--metrics') + 1], '127.0.0.1:20241');
+});
+
+test('argv 顺序：metrics 不可用时不传 --metrics，其余参数仍在 run 之前', () => {
+  const named = cloudflaredArgs({ mode: 'named', metricsPort: null });
+  assert.ok(!named.includes('--metrics'), '不支持 metrics 的 binary 不能收到 --metrics');
+  assert.ok(named.indexOf('--protocol') < named.indexOf('run'));
+
+  const quick = cloudflaredArgs({ mode: 'quick', metricsPort: null, port: 3081 });
+  assert.ok(!quick.includes('--metrics'));
+  assert.ok(quick.includes('--url'), '快速隧道必须带 --url');
+  assert.equal(quick[quick.indexOf('--url') + 1], 'http://127.0.0.1:3081');
+});
 
 async function makeFakeCloudflared() {
   const dir = await mkdtemp(join(tmpdir(), 'dsh-pocket-fake-cf-'));

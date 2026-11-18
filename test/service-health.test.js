@@ -240,6 +240,40 @@ test('没有 metrics 端口的隧道（旧实现）→ 跳过探活，不误判�
   await service.dispose();
 });
 
+test('cloudflared 不认 --metrics（自定义旧版 binary）→ 去掉该 flag 重试，隧道可用且不探活', async () => {
+  const factory = makeTunnelFactory();
+  const seen = [];
+  let probeCalls = 0;
+  const service = createPocketService({
+    dshPort: 3080,
+    port: 3081,
+    internals: makeInternals({
+      probe: async () => { probeCalls += 1; return { ok: true, readyConnections: 1, status: 200, error: '' }; },
+      tunnelFactory: {
+        startTunnel: async (opts) => {
+          seen.push(opts?.metrics);
+          if (opts?.metrics !== false) {
+            throw new Error('cloudflared 退出（code=0）：Incorrect Usage: flag provided but not defined: -metrics');
+          }
+          return { ...(await factory.startTunnel(opts)), metricsPort: null };
+        },
+      },
+    }),
+    healthCheckIntervalMs: 60_000,
+    healthCheckFailures: 2,
+    healthStartupGraceMs: 0,
+    log: { info() {}, log() {}, warn() {}, error() {} },
+  });
+  await service.startProxy();
+  await service.startTunnel();
+
+  assert.deepEqual(seen, [true, false], '先带 metrics；被拒后去掉再试一次');
+  assert.equal((await service.status()).tunnelState.phase, 'ready', '降级后隧道仍可用');
+  await service.checkTunnelHealth();
+  assert.equal(probeCalls, 0, '没有 metrics 端口时不做就绪探活');
+  await service.dispose();
+});
+
 test('未开启隧道（或已停止）时 checkTunnelHealth 是空操作', async () => {
   const h = makeService();
   const before = h.probeCalls;
