@@ -1,3 +1,10 @@
+## [3.1.2](https://github.com/MoRanYue/dsh-pocket/compare/v3.1.1...v3.1.2) (2026-11-18)
+
+
+### Bug Fixes
+
+* **proxy:** 原生 iOS 登录端点不存在时回 404，让 App 回退到访问密码 ([d88e49e](https://github.com/MoRanYue/dsh-pocket/commit/d88e49e875e540c3f953030b08cea4c116169980))
+
 ## [3.1.1](https://github.com/MoRanYue/dsh-pocket/compare/v3.1.0...v3.1.1) (2026-11-18)
 
 
