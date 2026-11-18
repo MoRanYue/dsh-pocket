@@ -1,3 +1,10 @@
+## [3.1.1](https://github.com/MoRanYue/dsh-pocket/compare/v3.1.0...v3.1.1) (2026-11-18)
+
+
+### Bug Fixes
+
+* **tunnel:** --metrics 必须放在 tunnel run 之前，命名隧道不再启动失败 ([ecf1e31](https://github.com/MoRanYue/dsh-pocket/commit/ecf1e31cdd562b43b8f00c8034bac9ffafbfadd6))
+
 # [3.1.0](https://github.com/MoRanYue/dsh-pocket/compare/v3.0.1...v3.1.0) (2026-11-15)
 
 
