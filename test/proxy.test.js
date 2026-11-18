@@ -1676,3 +1676,56 @@ test('?token=<原始 PIN> 直达种 HttpOnly cookie，issue #35', async () => {
     await new Promise((r) => up.close(r));
   }
 });
+
+test('原生 iOS 登录入口不可用时退回公网访问密码登录（上游 PR #227）', async () => {
+  // Pocket for DSH App 连到只跑 dsh-pocket 的电脑时，会先试独立代理才有的
+  // POST /dsh-pocket-ios/login；本插件回 404 让 App 回退到 POST /pocket-login，
+  // 否则 App 把 401 当成「访问密码不对」。
+  const pin = 'test123456';
+  const up = createServer((req, res) => {
+    res.writeHead(200, { 'content-type': 'text/html' });
+    res.end('<html><body>dsh</body></html>');
+  });
+  await new Promise((r) => up.listen(0, '127.0.0.1', r));
+  const proxy = await createPocketProxy({
+    port: 0,
+    host: '127.0.0.1',
+    upstream: { host: '127.0.0.1', port: up.address().port },
+    auth: { getToken: () => pin, isProtected: () => true, sessionKey: 'ios-fallback' },
+  });
+  const post = (path, token) => new Promise((resolve, reject) => {
+    const body = new URLSearchParams({ token }).toString();
+    const req = httpRequest({
+      host: '127.0.0.1',
+      port: proxy.port,
+      path,
+      method: 'POST',
+      headers: {
+        Host: 'abc.trycloudflare.com',
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Content-Length': Buffer.byteLength(body),
+      },
+    }, (res) => {
+      const chunks = [];
+      res.on('data', (c) => chunks.push(c));
+      res.on('end', () => resolve({ status: res.statusCode, headers: res.headers }));
+    });
+    req.on('error', reject);
+    req.end(body);
+  });
+  try {
+    const missing = await post('/dsh-pocket-ios/login', pin);
+    assert.equal(missing.status, 404, '原生端点回 404，App 才知道要回退');
+    assert.equal(missing.headers['set-cookie'] ?? null, null, '404 不种任何 cookie');
+
+    const invalid = await post('/pocket-login', 'wrong-password');
+    assert.equal(invalid.headers['set-cookie'] ?? null, null, '错误密码不种 cookie');
+
+    const valid = await post('/pocket-login', pin);
+    assert.equal(valid.status, 302, '正确密码 302 回首页');
+    assert.match(String((valid.headers['set-cookie'] ?? []).join(';')), /^dsh_pocket_token=/, '正确密码种会话 cookie');
+  } finally {
+    await proxy.close();
+    await new Promise((r) => up.close(r));
+  }
+});
